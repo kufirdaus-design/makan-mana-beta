@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Makan Mana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- Welcome / About modal, reused for the first-open intro and the ℹ️ button -->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal-card">
+    <div id="modal-body"></div>
+    <button id="modal-close" class="btn btn-primary">Let's go</button>
+  </div>
+</div>
+
+<div class="app-shell">
+
+  <!-- SCREEN: AUTH -->
+  <section id="screen-auth" class="screen active">
+    <div class="auth-content">
+      <div class="auth-hero">
+        <div class="logo-icon auth-logo-icon">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <mask id="auth-logo-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+              <rect width="200" height="200" fill="#fff"/>
+              <circle cx="145" cy="55" r="30" fill="#000"/>
+            </mask>
+            <path d="M38 92 A62 62 0 1 1 162 92 C162 132 132 158 100 184 C68 158 38 132 38 92 Z" fill="#fff" mask="url(#auth-logo-mask)"/>
+            <circle cx="169" cy="88" r="9" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="auth-brand">Makan Mana</div>
+        <p class="auth-tagline" data-i18n="authTagline">Decide where to eat, in seconds.</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="signin" data-i18n="signIn">Sign in</button>
+        <button class="auth-tab" data-tab="signup" data-i18n="signUp">Sign up</button>
+      </div>
+
+      <div id="tab-signin" class="auth-form active-form">
+        <input id="signin-email" class="auth-input" type="email" inputmode="email" autocomplete="email" data-i18n-placeholder="emailPlaceholder" placeholder="Email address" />
+        <input id="signin-password" class="auth-input" type="password" autocomplete="current-password" data-i18n-placeholder="pwPlaceholder" placeholder="Password" />
+        <div id="signin-error" class="auth-error"></div>
+        <button id="signin-btn" class="btn btn-primary" data-i18n="signIn">Sign in</button>
+      </div>
+
+      <div id="tab-signup" class="auth-form">
+        <input id="signup-name" class="auth-input" type="text" autocomplete="name" data-i18n-placeholder="namePlaceholder" placeholder="Your name" />
+        <input id="signup-email" class="auth-input" type="email" inputmode="email" autocomplete="email" data-i18n-placeholder="emailPlaceholder" placeholder="Email address" />
+        <input id="signup-password" class="auth-input" type="password" autocomplete="new-password" data-i18n-placeholder="newPwPlaceholder" placeholder="Password (min 8 chars)" />
+        <div id="signup-error" class="auth-error"></div>
+        <button id="signup-btn" class="btn btn-primary" data-i18n="createAccount">Create account</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: SESSION PROMPT -->
+  <section id="screen-prompt" class="screen">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="logo-icon">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <mask id="app-logo-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+              <rect width="200" height="200" fill="#fff"/>
+              <circle cx="145" cy="55" r="30" fill="#000"/>
+            </mask>
+            <path d="M38 92 A62 62 0 1 1 162 92 C162 132 132 158 100 184 C68 158 38 132 38 92 Z" fill="#fff" mask="url(#app-logo-mask)"/>
+            <circle cx="169" cy="88" r="9" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="brand">Makan <span>Mana</span></div>
+      </div>
+      <div class="topbar-actions">
+        <button id="lang-btn" class="lang-btn" aria-label="Toggle language">BM</button>
+        <button id="profile-btn" class="icon-btn" aria-label="About Makan Mana" title="About Makan Mana">ℹ️</button>
+      </div>
+    </header>
+
+    <h1 class="prompt-title" data-i18n="tagline">What are you craving?</h1>
+    <button id="location-status" class="location-status">📍 Getting your location…</button>
+
+    <div class="field">
+      <div class="field-label" data-i18n="mealLabel">Meal</div>
+      <div class="chip-row" data-group="meal" data-mode="single">
+        <button class="chip" data-value="breakfast" data-i18n="breakfast">Breakfast</button>
+        <button class="chip active" data-value="lunch" data-i18n="lunch">Lunch</button>
+        <button class="chip" data-value="dinner" data-i18n="dinner">Dinner</button>
+        <button class="chip" data-value="supper" data-i18n="supper">Supper</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label" data-i18n="budgetLabel">Budget</div>
+      <div class="chip-row" data-group="budget" data-mode="single">
+        <button class="chip" data-value="1" data-i18n="under10">Under RM10</button>
+        <button class="chip active" data-value="2" data-i18n="midBudget">RM10–30</button>
+        <button class="chip" data-value="3" data-i18n="highBudget">RM30+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label" data-i18n="distanceLabel">Preferred distance</div>
+      <div class="chip-row" data-group="distance" data-mode="single">
+        <button class="chip" data-value="2">≤2 km</button>
+        <button class="chip" data-value="5">≤5 km</button>
+        <button class="chip" data-value="10">≤10 km</button>
+        <button class="chip active" data-value="any" data-i18n="anyDist">Any distance</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span data-i18n="vibeLabel">Vibe</span> <span class="field-hint" data-i18n="pickAny">(pick any)</span></div>
+      <div class="chip-row" data-group="vibe" data-mode="multi">
+        <button class="chip active" data-value="quick-bite" data-i18n="quickBite">Quick bite</button>
+        <button class="chip" data-value="sit-down" data-i18n="sitDown">Sit-down</button>
+        <button class="chip" data-value="live-music" data-i18n="liveMusic">🎵 Live music</button>
+        <button class="chip" data-value="spicy" data-i18n="spicy">Spicy</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label"><span data-i18n="cravingLabel">Or tell us directly</span> <span class="field-hint" data-i18n="optional">(optional)</span></div>
+      <input id="craving-text" type="text" data-i18n-placeholder="cravingPlaceholder" placeholder="something with soup..." />
+    </div>
+
+    <div class="field">
+      <div class="field-label" data-i18n="dietLabel">Diet preference</div>
+      <div class="chip-row" data-group="diet" data-mode="single">
+        <button class="chip active" data-value="none" data-i18n="dietNone">No preference</button>
+        <button class="chip" data-value="no-pork-lard" data-i18n="dietNoPork">No pork/lard</button>
+        <button class="chip" data-value="vegetarian" data-i18n="dietVeg">Vegetarian</button>
+      </div>
+      <div class="field-hint" data-i18n="dietHint" style="margin-top:6px;">We're still building verified halal certification info, so for now this filters by whether a place is known to skip pork and lard. Open any place's detail page to see certification notes from fellow users.</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label" data-i18n="modeLabel">Mode</div>
+      <div class="mode-row">
+        <button class="mode-btn" data-mode="surprise" data-i18n="modeSurprise">🎲 Surprise me</button>
+        <button class="mode-btn active" data-mode="comfort" data-i18n="modeComfort">🏠 Comfort pick</button>
+      </div>
+      <div id="mode-hint" class="field-hint" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="spacer"></div>
+    <button id="start-swiping" class="btn btn-primary" data-i18n="startBtn">Start swiping</button>
+  </section>
+
+  <!-- SCREEN: SWIPE FEED -->
+  <section id="screen-feed" class="screen">
+    <header class="topbar">
+      <button id="back-to-prompt" class="icon-btn" aria-label="Back">←</button>
+      <div class="brand-lockup">
+        <div class="logo-icon logo-icon-sm">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <mask id="app-logo-mask-feed" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+              <rect width="200" height="200" fill="#fff"/>
+              <circle cx="145" cy="55" r="30" fill="#000"/>
+            </mask>
+            <path d="M38 92 A62 62 0 1 1 162 92 C162 132 132 158 100 184 C68 158 38 132 38 92 Z" fill="#fff" mask="url(#app-logo-mask-feed)"/>
+            <circle cx="169" cy="88" r="9" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="brand small">Makan <span>Mana</span></div>
+      </div>
+      <div class="icon-btn spacer-icon"></div>
+    </header>
+
+    <div class="deck" id="deck"></div>
+
+    <div class="swipe-hint-row">
+      <span data-i18n="skipHint">◀ skip</span>
+      <span id="details-hint" data-i18n="tapHint">tap card for details</span>
+      <span data-i18n="commitHint">commit ▶</span>
+    </div>
+
+    <div class="btn-row">
+      <button id="skip-btn" class="btn btn-outline" data-i18n="skipBtn">✕ Skip</button>
+      <button id="commit-btn" class="btn btn-primary" data-i18n="commitBtn">✓ Let's go</button>
+    </div>
+  </section>
+
+  <!-- SCREEN: RESTAURANT DETAIL -->
+  <section id="screen-detail" class="screen">
+    <header class="topbar">
+      <button id="back-to-feed" class="icon-btn" aria-label="Back">←</button>
+      <div class="brand small" data-i18n="detailsTitle">Details</div>
+      <div class="icon-btn spacer-icon"></div>
+    </header>
+    <div id="detail-content" class="detail-content"></div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button id="detail-skip-btn" class="btn btn-outline" data-i18n="skipBtn">✕ Skip</button>
+      <button id="detail-commit-btn" class="btn btn-primary" data-i18n="commitBtn">✓ Let's go</button>
+    </div>
+  </section>
+
+  <!-- SCREEN: COMMIT / NAVIGATE -->
+  <section id="screen-commit" class="screen">
+    <div class="commit-content">
+      <div class="commit-title" data-i18n="greatChoice">Great choice! 🎉</div>
+      <div id="commit-photo" class="photo-hero"></div>
+      <div id="commit-name" class="commit-name"></div>
+      <div id="commit-meta" class="commit-meta"></div>
+      <div class="spacer"></div>
+      <div class="field-label" data-i18n="navigateWith" style="text-align:center;margin-bottom:8px;">Navigate with</div>
+      <div class="btn-row">
+        <a id="navigate-link-waze" class="btn btn-primary" target="_blank" rel="noopener">🚗 Waze</a>
+        <a id="navigate-link-maps" class="btn btn-primary" target="_blank" rel="noopener">🧭 Google Maps</a>
+      </div>
+      <button id="back-to-feed-from-commit" class="btn btn-outline" data-i18n="backToFeed">Back to feed</button>
+    </div>
+  </section>
+
+  <!-- SCREEN: EMPTY DECK -->
+  <section id="screen-empty" class="screen">
+    <div class="commit-content">
+      <div class="commit-title" data-i18n="emptyTitle">That's everything for now 🍽️</div>
+      <p id="empty-copy" class="empty-copy"></p>
+      <div class="spacer"></div>
+      <button id="widen-distance-btn" class="btn btn-primary" style="display:none;"></button>
+      <button id="restart-btn" class="btn btn-primary" data-i18n="changePrefs">Change preferences</button>
+      <button id="empty-history-btn" class="btn btn-outline" data-i18n="viewHistory">View history</button>
+    </div>
+  </section>
+
+  <!-- SCREEN: HISTORY -->
+  <section id="screen-history" class="screen">
+    <header class="topbar">
+      <button id="back-from-history" class="icon-btn" aria-label="Back">←</button>
+      <div class="brand small" data-i18n="historyTitle">Places you've been</div>
+      <div class="icon-btn spacer-icon"></div>
+    </header>
+    <div id="history-list" class="history-list"></div>
+  </section>
+
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
