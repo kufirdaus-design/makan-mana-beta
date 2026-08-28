@@ -632,8 +632,8 @@ async function _googleAuth(errorElId) {
   try { await auth.signInWithPopup(googleProvider); }
   catch (e) { $("#" + errorElId).textContent = e.message; }
 }
-$("#google-signin-btn").addEventListener("click", () => _googleAuth("signin-error"));
-$("#google-signup-btn").addEventListener("click", () => _googleAuth("signup-error"));
+$("#google-signin-btn")?.addEventListener("click", () => _googleAuth("signin-error"));
+$("#google-signup-btn")?.addEventListener("click", () => _googleAuth("signup-error"));
 
 // Auth tabs
 $all(".auth-tab").forEach(tab => {
