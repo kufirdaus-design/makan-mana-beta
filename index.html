@@ -259,21 +259,60 @@
     </header>
     <div class="suggest-content">
       <p class="field-hint" style="margin-bottom:18px;" data-i18n="suggestHint">Know a great spot we're missing? Tell us about it.</p>
+
       <div class="field">
-        <div class="field-label" data-i18n="suggestName">Restaurant name *</div>
+        <div class="field-label">Restaurant name *</div>
         <input id="suggest-name" class="auth-input" type="text" placeholder="e.g. Restoran Sri Nirwana Maju" />
       </div>
+
       <div class="field">
-        <div class="field-label" data-i18n="suggestArea">Area / Address</div>
+        <div class="field-label">Area / Address</div>
         <input id="suggest-address" class="auth-input" type="text" placeholder="e.g. Bangsar, KL" />
       </div>
+
       <div class="field">
-        <div class="field-label" data-i18n="suggestNotes">Notes</div>
-        <input id="suggest-notes" class="auth-input" type="text" placeholder="e.g. Best banana leaf in PJ, open 24hrs" />
+        <div class="field-label">Killer / Special dish *</div>
+        <input id="suggest-killer" class="auth-input" type="text" placeholder="e.g. Char kuey teow, extra cockles" />
       </div>
+
+      <div class="field">
+        <div class="field-label">Price range</div>
+        <div class="chip-row" data-group="suggest-budget" data-mode="single">
+          <button class="chip" data-value="1">Under RM10</button>
+          <button class="chip active" data-value="2">RM10–30</button>
+          <button class="chip" data-value="3">RM30+</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Your rating</div>
+        <div class="star-row" id="suggest-stars">
+          <button class="star-btn" data-star="1">★</button>
+          <button class="star-btn" data-star="2">★</button>
+          <button class="star-btn" data-star="3">★</button>
+          <button class="star-btn" data-star="4">★</button>
+          <button class="star-btn" data-star="5">★</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Why it's great</div>
+        <textarea id="suggest-why" class="auth-input suggest-textarea" placeholder="e.g. Best banana leaf in PJ, always packed at lunch, open 24hrs"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Photos <span class="field-hint">(up to 3)</span></div>
+        <label class="photo-upload-label" for="suggest-photos">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Add photos</span>
+        </label>
+        <input id="suggest-photos" type="file" accept="image/*" multiple style="display:none;" />
+        <div id="suggest-photo-previews" class="photo-preview-row"></div>
+      </div>
+
       <div id="suggest-feedback" class="suggest-feedback" style="display:none;"></div>
       <div class="spacer"></div>
-      <button id="suggest-submit-btn" class="btn btn-primary" data-i18n="suggestSubmit">Submit suggestion</button>
+      <button id="suggest-submit-btn" class="btn btn-primary">Submit suggestion</button>
     </div>
   </section>
 
@@ -299,6 +338,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>
