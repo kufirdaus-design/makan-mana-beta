@@ -260,7 +260,7 @@ function showScreen(id) {
   // Show/hide bottom nav based on screen
   const nav = document.getElementById("bottom-nav");
   if (nav) {
-    const show = NAV_SCREENS.has(id) && currentUser !== null;
+    const show = NAV_SCREENS.has(id);
     nav.style.display = show ? "flex" : "none";
     $all(".nav-tab", nav).forEach(t => t.classList.toggle("active", t.dataset.screen === id));
   }
@@ -560,20 +560,28 @@ function initAuth() {
   if (_firebaseReady) {
     auth.onAuthStateChanged(user => {
       if (user) {
-        currentUser = { uid: user.uid, name: user.displayName || user.email, email: user.email };
+        currentUser = {
+          uid: user.uid,
+          name: user.displayName || user.email || null,
+          email: user.email,
+          isAnonymous: user.isAnonymous,
+        };
         bootApp();
       } else {
-        currentUser = null;
-        applyTranslations();
-        showScreen("screen-auth");
+        // No session — sign in anonymously (no friction, no auth screen)
+        auth.signInAnonymously().catch(() => {
+          // Anonymous auth not enabled in console — boot as local guest
+          currentUser = { uid: `local_${Math.random().toString(36).slice(2)}`, name: null, email: null };
+          applyTranslations();
+          bootApp();
+        });
       }
     });
   } else {
-    // Fallback: localStorage mock auth
-    try { const s = localStorage.getItem("mm_session"); if (s) currentUser = JSON.parse(s); } catch {}
+    // No Firebase — generate local uid, boot directly
+    currentUser = { uid: `local_${Math.random().toString(36).slice(2)}`, name: null, email: null };
     applyTranslations();
-    if (currentUser) { bootApp(); return; }
-    showScreen("screen-auth");
+    bootApp();
   }
 }
 
@@ -647,7 +655,7 @@ $all(".auth-tab").forEach(tab => {
 
 // ─── Welcome / About modal ────────────────────────────────────────────────────
 function welcomeHTML() {
-  const first = currentUser ? currentUser.name.split(" ")[0] : "there";
+  const first = currentUser?.name ? currentUser.name.split(" ")[0] : "there";
   return `
     <div class="modal-badge">${t("earlyBeta")}</div>
     <h2>${t("welcomeGreet", first)}</h2>
