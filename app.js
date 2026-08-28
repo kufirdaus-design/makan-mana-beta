@@ -16,11 +16,12 @@ const FIREBASE_CONFIG = {
 
 // ─── Firebase init ────────────────────────────────────────────────────────────
 const _firebaseReady = Boolean(FIREBASE_CONFIG.projectId);
-let auth = null, db = null, googleProvider = null;
+let auth = null, db = null, storage = null, googleProvider = null;
 if (_firebaseReady) {
   firebase.initializeApp(FIREBASE_CONFIG);
   auth           = firebase.auth();
   db             = firebase.firestore();
+  storage        = firebase.storage();
   googleProvider = new firebase.auth.GoogleAuthProvider();
 }
 
@@ -237,6 +238,8 @@ let history = [];
 let userCoords = null;
 let currentUser = null;
 let nearbyRestaurants = [];
+let approvedSuggestions = [];
+let suggestRating = 0;
 
 // Places API coordination
 let _placesService = null;
@@ -684,6 +687,13 @@ function hideModal() { $("#modal-overlay").classList.remove("open"); }
 $("#modal-close").addEventListener("click", hideModal);
 $("#modal-overlay").addEventListener("click", e => { if (e.target.id === "modal-overlay") hideModal(); });
 
+// ─── Name normalization ───────────────────────────────────────────────────────
+function toNameKey(str) {
+  return str.toLowerCase()
+    .replace(/\b(restoran|restaurant|warung|kedai makan|kedai|cafe|café|kopitiam|mamak)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 // ─── Location ─────────────────────────────────────────────────────────────────
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371, dLat = ((lat2-lat1)*Math.PI)/180, dLng = ((lng2-lng1)*Math.PI)/180;
@@ -823,8 +833,30 @@ function areaLabel(r) {
 // ─── Deck building ────────────────────────────────────────────────────────────
 function buildDeck() {
   const seenNames = new Set(RESTAURANTS.map(r => r.name.toLowerCase()));
+  const seenKeys  = new Set(RESTAURANTS.map(r => toNameKey(r.name)));
   const uniquePlaces = nearbyRestaurants.filter(r => !seenNames.has(r.name.toLowerCase()));
-  const all = [...RESTAURANTS, ...uniquePlaces];
+  const mappedSuggestions = approvedSuggestions
+    .filter(s => !seenNames.has(s.name.toLowerCase()) && !seenKeys.has(toNameKey(s.name)))
+    .map(s => ({
+      id: s.id,
+      name: s.name,
+      address: s.address || "",
+      cuisine: "Community pick",
+      priceTier: s.priceTier || 2,
+      noPorkLard: false, vegetarian: false, liveMusic: false,
+      hours: "",
+      lat: DEFAULT_COORDS.lat, lng: DEFAULT_COORDS.lng,
+      meals: ["breakfast","lunch","dinner","supper"],
+      vibes: ["quick-bite","sit-down"],
+      emoji: "📍",
+      gradient: "linear-gradient(135deg,#2d6a4f,#52b788)",
+      menu: s.killerDish ? [{ name: s.killerDish, price: null }] : [],
+      review: s.whyGreat || "",
+      rating: s.rating || null,
+      photos: s.photoUrls || [],
+      communityReports: { noPorkLard: 0, halalCert: 0, alcohol: 0 },
+    }));
+  const all = [...RESTAURANTS, ...uniquePlaces, ...mappedSuggestions];
 
   return all
     .filter(r => r.meals.includes(prefs.meal))
@@ -855,7 +887,13 @@ function buildDeck() {
     .map(x => x.r);
 }
 
-function startSwiping() {
+async function startSwiping() {
+  if (db) {
+    try {
+      const snap = await db.collection("suggestions").where("status","==","approved").get();
+      approvedSuggestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch { approvedSuggestions = []; }
+  }
   deck = buildDeck(); currentIndex = 0;
   if (deck.length === 0) { renderEmptyScreen(); showScreen("screen-empty"); return; }
   showScreen("screen-feed");
@@ -1033,6 +1071,77 @@ function renderDetail(r) {
 
   buildPhotoGallery(r, $("#detail-gallery-container"));
 
+  // Fix photos panel
+  const fixBlock = document.createElement("div");
+  fixBlock.className = "detail-block";
+  fixBlock.innerHTML = `
+    <div class="detail-block-title">Photos</div>
+    <button class="report-chip fix-photo-btn" style="width:100%;justify-content:flex-start;">
+      <span>📷 Fix wrong photos</span>
+    </button>
+    <div class="correction-panel" style="display:none;margin-top:10px;">
+      <label class="photo-upload-label" for="fix-photo-input" style="margin-bottom:8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Add correct photos (up to 3)</span>
+      </label>
+      <input id="fix-photo-input" type="file" accept="image/*" multiple style="display:none;" />
+      <div class="photo-preview-row" id="fix-photo-previews"></div>
+      <button class="btn btn-primary fix-photo-submit" style="margin-top:8px;min-height:38px;font-size:13px;">Upload correction</button>
+      <div class="fix-photo-thanks" style="display:none;font-size:12.5px;color:var(--good);margin-top:6px;">Thanks! We'll review and update the photos. 🙏</div>
+    </div>
+  `;
+  $("#detail-content").appendChild(fixBlock);
+
+  fixBlock.querySelector(".fix-photo-btn").addEventListener("click", () => {
+    fixBlock.querySelector(".correction-panel").style.display = "block";
+    fixBlock.querySelector(".fix-photo-btn").style.display = "none";
+  });
+  const fixInput = fixBlock.querySelector("#fix-photo-input");
+  const fixPreviews = fixBlock.querySelector("#fix-photo-previews");
+  fixInput.addEventListener("change", () => {
+    fixPreviews.innerHTML = "";
+    Array.from(fixInput.files).slice(0, 3).forEach(f => {
+      const img = document.createElement("img");
+      img.className = "photo-thumb";
+      img.src = URL.createObjectURL(f);
+      fixPreviews.appendChild(img);
+    });
+  });
+  fixBlock.querySelector(".fix-photo-submit").addEventListener("click", async () => {
+    const files = Array.from(fixInput.files).slice(0, 3);
+    if (!files.length) return;
+    const submitBtn = fixBlock.querySelector(".fix-photo-submit");
+    submitBtn.disabled = true; submitBtn.textContent = "Uploading…";
+    let photoUrls = [];
+    if (storage && currentUser?.uid) {
+      try {
+        const folder = `corrections/${r.id}/${currentUser.uid}_${Date.now()}`;
+        photoUrls = await Promise.all(files.map(async (f, i) => {
+          const ref = storage.ref(`${folder}/${i}_${f.name}`);
+          await ref.put(f);
+          return ref.getDownloadURL();
+        }));
+      } catch {
+        submitBtn.disabled = false; submitBtn.textContent = "Upload correction";
+        return;
+      }
+    }
+    if (db && currentUser?.uid) {
+      await db.collection("corrections").add({
+        type: "wrongPhoto",
+        restaurantId: r.id,
+        restaurantName: r.name,
+        photoUrls,
+        submittedBy: currentUser.uid,
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }).catch(() => {});
+    }
+    fixBlock.querySelector(".correction-panel").querySelector("label").style.display = "none";
+    fixPreviews.style.display = "none";
+    submitBtn.style.display = "none";
+    fixBlock.querySelector(".fix-photo-thanks").style.display = "block";
+  });
+
   // Load real counts from Firestore
   if (db) {
     db.collection("communityReports").doc(r.id).get().then(snap => {
@@ -1143,7 +1252,41 @@ function renderSuggest() {
   const fb = $("#suggest-feedback");
   if (fb) { fb.style.display = "none"; fb.innerHTML = ""; }
   const btn = $("#suggest-submit-btn");
-  if (btn) { btn.disabled = false; btn.textContent = t("suggestSubmit"); }
+  if (btn) { btn.disabled = false; btn.textContent = "Submit suggestion"; }
+
+  // Star rating
+  suggestRating = 0;
+  $all(".star-btn").forEach(b => {
+    b.classList.remove("lit");
+    b.onclick = () => {
+      suggestRating = Number(b.dataset.star);
+      $all(".star-btn").forEach(s => s.classList.toggle("lit", Number(s.dataset.star) <= suggestRating));
+    };
+  });
+
+  // Photo preview
+  const photosInput = $("#suggest-photos");
+  const previews = $("#suggest-photo-previews");
+  if (photosInput && previews) {
+    photosInput.value = "";
+    previews.innerHTML = "";
+    photosInput.onchange = () => {
+      previews.innerHTML = "";
+      const files = Array.from(photosInput.files).slice(0, 3);
+      files.forEach(f => {
+        const img = document.createElement("img");
+        img.className = "photo-thumb";
+        img.src = URL.createObjectURL(f);
+        previews.appendChild(img);
+      });
+    };
+  }
+
+  // Budget chips
+  const budgetChips = $all("[data-group='suggest-budget'] .chip");
+  budgetChips.forEach(c => {
+    c.onclick = () => { budgetChips.forEach(x => x.classList.remove("active")); c.classList.add("active"); };
+  });
 }
 
 function findPlaceByName(name, address) {
@@ -1165,12 +1308,15 @@ function showSuggestFeedback(type, html) {
 }
 
 async function submitSuggestion() {
-  const name    = $("#suggest-name").value.trim();
-  const address = $("#suggest-address").value.trim();
-  const notes   = $("#suggest-notes").value.trim();
-  const btn     = $("#suggest-submit-btn");
+  const name       = $("#suggest-name").value.trim();
+  const address    = $("#suggest-address").value.trim();
+  const killerDish = $("#suggest-killer").value.trim();
+  const whyGreat   = $("#suggest-why").value.trim();
+  const priceTier  = Number($("[data-group='suggest-budget'] .chip.active")?.dataset.value || 2);
+  const btn        = $("#suggest-submit-btn");
 
-  if (!name) { showSuggestFeedback("error", "Please enter a restaurant name."); return; }
+  if (!name)       { showSuggestFeedback("error", "Please enter a restaurant name."); return; }
+  if (!killerDish) { showSuggestFeedback("error", "Tell us the killer dish!"); return; }
 
   btn.disabled = true;
   btn.textContent = "Checking…";
@@ -1182,20 +1328,58 @@ async function submitSuggestion() {
   );
   if (localMatch) {
     showSuggestFeedback("exists", `✅ We already have <strong>${localMatch.name}</strong> at ${localMatch.address} — it's in the feed!`);
-    btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+    // Inject inline correction form below the feedback
+    const fb = $("#suggest-feedback");
+    const panel = document.createElement("div");
+    panel.className = "correction-panel";
+    panel.innerHTML = `
+      <div class="field-hint" style="margin-bottom:6px;">Something wrong with how we show it?</div>
+      <textarea class="auth-input suggest-textarea correction-text" placeholder="e.g. Wrong address, closed down, different hours…" style="min-height:60px;"></textarea>
+      <button class="btn btn-outline correction-submit-btn" style="margin-top:6px;">Send correction</button>
+      <div class="correction-thanks" style="display:none;font-size:12.5px;color:var(--good);margin-top:6px;">Thanks! We'll fix it soon. 🙏</div>
+    `;
+    fb.insertAdjacentElement("afterend", panel);
+    panel.querySelector(".correction-submit-btn").addEventListener("click", async () => {
+      const text = panel.querySelector(".correction-text").value.trim();
+      if (!text) return;
+      if (db && currentUser?.uid) {
+        await db.collection("corrections").add({
+          type: "textCorrection",
+          restaurantId: localMatch.id,
+          restaurantName: localMatch.name,
+          correction: text,
+          submittedBy: currentUser.uid,
+          submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {});
+      }
+      panel.querySelector(".correction-text").style.display = "none";
+      panel.querySelector(".correction-submit-btn").style.display = "none";
+      panel.querySelector(".correction-thanks").style.display = "block";
+    });
+    btn.disabled = false; return;
   }
 
-  // Layer 2: existing Firestore suggestions
-  if (db) {
+  // Layer 2: existing Firestore suggestions — exact nameKey match + vote merging
+  const nameKey = toNameKey(name);
+  if (db && nameKey) {
     try {
-      const snap = await db.collection("suggestions").where("nameLower", ">=", name.toLowerCase().slice(0, 8)).limit(10).get();
-      const dup = snap.docs.find(d =>
-        d.data().name.toLowerCase().includes(name.toLowerCase()) ||
-        name.toLowerCase().includes(d.data().name.toLowerCase())
-      );
-      if (dup) {
-        showSuggestFeedback("exists", `✅ <strong>${dup.data().name}</strong> has already been suggested — we'll review it soon!`);
-        btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+      const snap = await db.collection("suggestions").where("nameKey", "==", nameKey).limit(5).get();
+      if (!snap.empty) {
+        const dupDoc = snap.docs[0];
+        const data = dupDoc.data();
+        const alreadyVoted = (data.voters || []).includes(currentUser?.uid);
+        if (alreadyVoted) {
+          showSuggestFeedback("exists", `✅ You already suggested <strong>${data.name}</strong> — we'll review it soon!`);
+          btn.disabled = false; return;
+        }
+        // Different user — increment vote
+        await dupDoc.ref.update({
+          votes: firebase.firestore.FieldValue.increment(1),
+          voters: firebase.firestore.FieldValue.arrayUnion(currentUser?.uid),
+        });
+        const total = (data.votes || 1) + 1;
+        showSuggestFeedback("success", `👍 ${total} people have suggested <strong>${data.name}</strong> — we'll prioritise it!`);
+        btn.disabled = false; btn.textContent = "Submit suggestion"; return;
       }
     } catch {}
   }
@@ -1208,16 +1392,40 @@ async function submitSuggestion() {
       const alreadyInFeed = nearbyRestaurants.find(r => r.placeId === placesMatch.place_id);
       if (alreadyInFeed) {
         showSuggestFeedback("exists", `✅ <strong>${placesMatch.name}</strong> is already appearing in your feed!`);
-        btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+        btn.disabled = false; return;
       }
     }
   }
 
-  // Save to Firestore (or show success without saving if no DB)
+  // Upload photos to Firebase Storage
+  btn.textContent = "Uploading…";
+  let photoUrls = [];
+  const photosInput = $("#suggest-photos");
+  if (storage && photosInput && photosInput.files.length > 0) {
+    const files = Array.from(photosInput.files).slice(0, 3);
+    try {
+      const tempId = Date.now().toString();
+      photoUrls = await Promise.all(files.map(async (f, i) => {
+        const ref = storage.ref(`suggestions/${tempId}/${i}_${f.name}`);
+        await ref.put(f);
+        return ref.getDownloadURL();
+      }));
+    } catch {
+      showSuggestFeedback("error", "Photo upload failed — try without photos or check your connection.");
+      btn.disabled = false; btn.textContent = "Submit suggestion"; return;
+    }
+  }
+
+  // Save to Firestore
   if (db && currentUser?.uid) {
     try {
       await db.collection("suggestions").add({
-        name, nameLower: name.toLowerCase(), address, notes,
+        name, nameLower: name.toLowerCase(), nameKey,
+        address, killerDish, whyGreat, priceTier,
+        rating: suggestRating || null,
+        photoUrls,
+        votes: 1,
+        voters: [currentUser.uid],
         submittedBy: currentUser.uid,
         submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
         status: "pending",
@@ -1225,16 +1433,20 @@ async function submitSuggestion() {
       });
     } catch {
       showSuggestFeedback("error", "Couldn't save — please try again.");
-      btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+      btn.disabled = false; btn.textContent = "Submit suggestion"; return;
     }
   }
 
   showSuggestFeedback("success", `🙏 Thanks! We'll review <strong>${name}</strong> and add it soon.`);
   $("#suggest-name").value = "";
   $("#suggest-address").value = "";
-  $("#suggest-notes").value = "";
+  $("#suggest-killer").value = "";
+  $("#suggest-why").value = "";
+  if (photosInput) { photosInput.value = ""; $("#suggest-photo-previews").innerHTML = ""; }
+  suggestRating = 0;
+  $all(".star-btn").forEach(s => s.classList.remove("lit"));
   btn.disabled = false;
-  btn.textContent = t("suggestSubmit");
+  btn.textContent = "Submit suggestion";
 }
 
 $("#suggest-submit-btn").addEventListener("click", submitSuggestion);
