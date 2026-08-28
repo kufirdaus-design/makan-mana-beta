@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Makan Mana — Admin</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f5f5;color:#1a1a1a;}
+  #gate{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px;}
+  #gate input{padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;width:260px;}
+  #gate button{padding:10px 24px;background:#2d6a4f;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;}
+  #gate .err{color:#c1121f;font-size:13px;}
+  #app{display:none;max-width:860px;margin:0 auto;padding:24px 16px 60px;}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px;}
+  .subtitle{font-size:13px;color:#666;margin-bottom:24px;}
+  .tabs{display:flex;gap:8px;margin-bottom:20px;}
+  .tab-btn{padding:7px 16px;border-radius:20px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#666;}
+  .tab-btn.active{background:#2d6a4f;color:#fff;border-color:#2d6a4f;}
+  #count{font-size:13px;color:#666;margin-bottom:16px;}
+  .card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:16px;margin-bottom:14px;}
+  .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .card-name{font-size:16px;font-weight:700;}
+  .votes-badge{background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;white-space:nowrap;}
+  .meta{font-size:12px;color:#666;margin-bottom:6px;}
+  .killer{font-size:13px;margin-bottom:4px;}<br>  .why{font-size:12.5px;color:#555;font-style:italic;margin-bottom:10px;}
+  .photos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .photos img{width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #eee;}
+  .price{display:inline-block;font-size:11px;background:#e8f5ef;color:#2d6a4f;border-radius:4px;padding:2px 8px;font-weight:700;margin-right:6px;}
+  .rating{display:inline-block;font-size:11px;color:#e8960c;font-weight:700;}
+  .actions{display:flex;gap:8px;margin-top:12px;}
+  .btn-approve{flex:1;padding:9px;background:#2d6a4f;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
+  .btn-reject{flex:1;padding:9px;background:#fff;color:#c1121f;border:1.5px solid #c1121f;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
+  .btn-approve:disabled,.btn-reject:disabled{opacity:.4;cursor:default;}
+  .done-badge{text-align:center;padding:10px;font-size:13px;border-radius:8px;margin-top:10px;}
+  .done-approved{background:#e8f5ef;color:#2d6a4f;}
+  .done-rejected{background:#fdecea;color:#c1121f;}
+  .empty{text-align:center;padding:60px 0;color:#888;font-size:14px;}
+  .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#999;margin-bottom:4px;}
+  .correction-card{background:#fff;border-radius:12px;border:1px solid #ffc107;padding:14px;margin-bottom:14px;}
+  .correction-type{font-size:11px;font-weight:700;background:#fff3cd;color:#856404;border-radius:4px;padding:2px 8px;display:inline-block;margin-bottom:8px;}
+  .correction-text{font-size:13px;color:#333;margin-bottom:8px;}
+  .btn-dismiss{padding:6px 14px;background:#fff;color:#666;border:1.5px solid #ddd;border-radius:8px;font-size:12px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div style="font-size:22px;font-weight:700;color:#2d6a4f;">Makan Mana Admin</div>
+  <input id="pwd-input" type="password" placeholder="Admin password" />
+  <button onclick="checkPwd()">Enter</button>
+  <div class="err" id="pwd-err"></div>
+</div>
+
+<div id="app">
+  <h1>Makan Mana Admin</h1>
+  <p class="subtitle">Review community suggestions and corrections.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('suggestions',this)">Suggestions</button>
+    <button class="tab-btn" onclick="switchTab('corrections',this)">Corrections</button>
+  </div>
+
+  <div id="tab-suggestions">
+    <div id="count"></div>
+    <div id="suggestions-list"></div>
+  </div>
+
+  <div id="tab-corrections" style="display:none;">
+    <div id="corrections-list"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+
+// ── Paste your Firebase config here (same as app.js) ──────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: "",
+};
+
+// ── Admin password (change this to something only you know) ───────────────────
+const ADMIN_PASSWORD = "makanmanaoi26^";
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PRICE_LABEL = { 1: "Under RM10", 2: "RM10–30", 3: "RM30+" };
+
+let db = null;
+
+function checkPwd() {
+  const val = document.getElementById("pwd-input").value;
+  if (val === ADMIN_PASSWORD) {
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    initFirebase();
+  } else {
+    document.getElementById("pwd-err").textContent = "Wrong password.";
+  }
+}
+document.getElementById("pwd-input").addEventListener("keydown", e => { if (e.key === "Enter") checkPwd(); });
+
+function initFirebase() {
+  if (!FIREBASE_CONFIG.projectId) {
+    document.getElementById("suggestions-list").innerHTML = '<div class="empty">Firebase config not set — paste it into admin.html.</div>';
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+  loadSuggestions();
+  loadCorrections();
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("tab-suggestions").style.display = tab === "suggestions" ? "block" : "none";
+  document.getElementById("tab-corrections").style.display = tab === "corrections" ? "block" : "none";
+}
+
+// ── Suggestions ───────────────────────────────────────────────────────────────
+
+async function loadSuggestions() {
+  const list = document.getElementById("suggestions-list");
+  const countEl = document.getElementById("count");
+  list.innerHTML = "<div class='empty'>Loading…</div>";
+  try {
+    const snap = await db.collection("suggestions")
+      .where("status", "==", "pending")
+      .orderBy("votes", "desc")
+      .get();
+
+    if (snap.empty) {
+      list.innerHTML = "<div class='empty'>No pending suggestions. 🎉</div>";
+      countEl.textContent = "";
+      return;
+    }
+
+    countEl.textContent = `${snap.size} pending suggestion${snap.size !== 1 ? "s" : ""}, sorted by votes`;
+    list.innerHTML = "";
+    snap.docs.forEach(doc => list.appendChild(buildSuggestionCard(doc)));
+  } catch (e) {
+    list.innerHTML = `<div class='empty'>Error: ${e.message}<br><small>Make sure Firestore has an index on suggestions(status, votes desc) — Firebase console will show a link to create it.</small></div>`;
+  }
+}
+
+function buildSuggestionCard(doc) {
+  const d = doc.data();
+  const card = document.createElement("div");
+  card.className = "card";
+  card.id = `card-${doc.id}`;
+
+  const photos = (d.photoUrls || []).map(u => `<img src="${u}" />`).join("");
+  const stars = d.rating ? "★".repeat(d.rating) + "☆".repeat(5 - d.rating) : "—";
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-name">${esc(d.name)}</div>
+      <div class="votes-badge">👍 ${d.votes || 1} vote${(d.votes || 1) !== 1 ? "s" : ""}</div>
+    </div>
+    <div class="meta">📍 ${esc(d.address || "—")}</div>
+    ${d.killerDish ? `<div class="section-label" style="margin-top:8px;">Killer dish</div><div class="killer">🍽 ${esc(d.killerDish)}</div>` : ""}
+    ${d.whyGreat  ? `<div class="section-label" style="margin-top:6px;">Why it's great</div><div class="why">"${esc(d.whyGreat)}"</div>` : ""}
+    <div style="margin-bottom:8px;">
+      ${d.priceTier ? `<span class="price">${PRICE_LABEL[d.priceTier] || "—"}</span>` : ""}
+      ${d.rating    ? `<span class="rating">${stars} ${d.rating}/5</span>` : ""}
+    </div>
+    ${photos ? `<div class="photos">${photos}</div>` : ""}
+    <div class="actions">
+      <button class="btn-approve" onclick="decide('${doc.id}','approved',this)">✓ Approve</button>
+      <button class="btn-reject"  onclick="decide('${doc.id}','rejected',this)">✕ Reject</button>
+    </div>
+  `;
+  return card;
+}
+
+async function decide(id, status, btn) {
+  const card = document.getElementById(`card-${id}`);
+  card.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    await db.collection("suggestions").doc(id).update({ status });
+    const badge = document.createElement("div");
+    badge.className = `done-badge done-${status}`;
+    badge.textContent = status === "approved" ? "✓ Approved — now live in the feed!" : "✕ Rejected";
+    card.querySelector(".actions").replaceWith(badge);
+    // Update count
+    const remaining = document.querySelectorAll(".card").length - document.querySelectorAll(".done-badge").length;
+    document.getElementById("count").textContent = `${remaining} pending suggestion${remaining !== 1 ? "s" : ""} remaining`;
+  } catch (e) {
+    card.querySelectorAll("button").forEach(b => b.disabled = false);
+    alert("Error: " + e.message);
+  }
+}
+
+// ── Corrections ───────────────────────────────────────────────────────────────
+
+async function loadCorrections() {
+  const list = document.getElementById("corrections-list");
+  list.innerHTML = "<div class='empty'>Loading…</div>";
+  try {
+    const snap = await db.collection("corrections")
+      .orderBy("submittedAt", "desc")
+      .limit(50)
+      .get();
+
+    if (snap.empty) { list.innerHTML = "<div class='empty'>No corrections yet.</div>"; return; }
+
+    list.innerHTML = "";
+    snap.docs.forEach(doc => list.appendChild(buildCorrectionCard(doc)));
+  } catch (e) {
+    list.innerHTML = `<div class='empty'>Error: ${e.message}</div>`;
+  }
+}
+
+function buildCorrectionCard(doc) {
+  const d = doc.data();
+  const card = document.createElement("div");
+  card.className = "correction-card";
+  card.id = `corr-${doc.id}`;
+
+  const photos = (d.photoUrls || []).map(u => `<img src="${u}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #eee;" />`).join("");
+  const typeLabel = d.type === "wrongPhoto" ? "Wrong photo" : "Text correction";
+  const when = d.submittedAt?.toDate ? d.submittedAt.toDate().toLocaleDateString() : "—";
+
+  card.innerHTML = `
+    <span class="correction-type">${typeLabel}</span>
+    <div class="meta" style="margin-bottom:6px;">Restaurant: <strong>${esc(d.restaurantName || d.restaurantId || "—")}</strong> · ${when}</div>
+    ${d.correction ? `<div class="correction-text">"${esc(d.correction)}"</div>` : ""}
+    ${photos ? `<div class="photos" style="margin-bottom:10px;">${photos}</div>` : ""}
+    <button class="btn-dismiss" onclick="dismissCorrection('${doc.id}',this)">Mark reviewed</button>
+  `;
+  return card;
+}
+
+async function dismissCorrection(id, btn) {
+  btn.disabled = true;
+  btn.textContent = "Marking…";
+  await db.collection("corrections").doc(id).update({ reviewed: true }).catch(() => {});
+  document.getElementById(`corr-${id}`).style.opacity = "0.4";
+  btn.textContent = "Reviewed ✓";
+}
+
+function esc(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+</script>
+</body>
+</html>
