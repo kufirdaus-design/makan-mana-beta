@@ -1,20 +1,34 @@
-/* Makan Mana — web prototype
- * Vanilla JS, no build step, no dependencies.
- *
- * SETUP: Set your Google Maps Platform API key below.
- * Enable "Maps JavaScript API" and "Places API" at console.cloud.google.com.
- * Without a key, the app falls back to 120 curated restaurants from data.js.
- */
+/* Makan Mana — web prototype */
 
-// ─── API KEY ─────────────────────────────────────────────────────────────────
+// ─── API keys ─────────────────────────────────────────────────────────────────
 const PLACES_API_KEY = "AIzaSyDyFLsAbioXlQiKXkyO5jJp_u3MjjL-EYI";
+
+// Paste your Firebase config here (console.firebase.google.com → Project Settings → Your apps)
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBkIhCpaxU3ZXmr_kOao0xc2OrNMbgmJ3k",
+  authDomain: "makanmana-56e44.firebaseapp.com",
+  projectId: "makanmana-56e44",
+  storageBucket: "makanmana-56e44.firebasestorage.app",
+  messagingSenderId: "410378291972",
+  appId: "1:410378291972:web:2ade2fa781313b43b95e51",
+  measurementId: "G-C63TRX4ZKF"
+};
+
+// ─── Firebase init ────────────────────────────────────────────────────────────
+const _firebaseReady = Boolean(FIREBASE_CONFIG.projectId);
+let auth = null, db = null, googleProvider = null;
+if (_firebaseReady) {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  auth           = firebase.auth();
+  db             = firebase.firestore();
+  googleProvider = new firebase.auth.GoogleAuthProvider();
+}
 
 // ─── Load Maps JS SDK immediately if key is set ───────────────────────────────
 if (PLACES_API_KEY) {
   const _s = document.createElement("script");
   _s.src = `https://maps.googleapis.com/maps/api/js?key=${PLACES_API_KEY}&libraries=places&callback=_onMapsReady`;
-  _s.async = true;
-  _s.defer = true;
+  _s.async = true; _s.defer = true;
   document.head.appendChild(_s);
 }
 
@@ -47,11 +61,11 @@ const T = {
     cravingPlaceholder: "something with soup...",
     dietLabel: "Diet preference",
     dietNone: "No preference", dietNoPork: "No pork/lard", dietVeg: "Vegetarian",
-    dietHint: "We're still building verified halal certification info, so for now this filters by whether a place is known to skip pork and lard. Open any place's detail page to see certification notes from fellow users.",
+    dietHint: "We're still building verified halal certification info, so for now this filters by whether a place is known to skip pork and lard.",
     modeLabel: "Mode",
     modeSurprise: "🎲 Surprise me", modeComfort: "🏠 Comfort pick",
-    hintSurprise: "We'll push places you haven't tried yet higher up the feed, and tuck familiar picks lower down — good for breaking out of a rut.",
-    hintComfort: "We'll happily resurface places you've already been and liked, alongside new ones — good for a reliable pick with less risk.",
+    hintSurprise: "We'll push places you haven't tried yet higher up the feed — good for breaking out of a rut.",
+    hintComfort: "We'll happily resurface places you've already liked, alongside new ones — good for a reliable pick.",
     startBtn: "Start swiping",
     loadingPlaces: "Finding places near you…",
     startBtnCount: (n) => `Start swiping (${n})`,
@@ -63,7 +77,7 @@ const T = {
     sectionCommunity: "Help other users — what do you know about this place?",
     viewOnMaps: "Menu not available · View on Google Maps",
     reportNoPork: "🚫🐖 No pork/lard", reportHalal: "🕌 Has halal certification", reportAlcohol: "🍺 Serves alcohol",
-    reportDisclaimer: "These come from fellow users, not an official source yet — think of it as a helpful heads-up, not a guarantee. (In this early beta, reports reset each time you reload.)",
+    reportDisclaimer: "These come from fellow users, not an official source — a helpful heads-up, not a guarantee.",
     reviewBy: "early tester",
     greatChoice: "Great choice! 🎉",
     navigateWith: "Navigate with",
@@ -71,22 +85,30 @@ const T = {
     driveMin: (mins) => `~${mins} min drive`,
     emptyTitle: "That's everything for now 🍽️",
     changePrefs: "Change preferences", viewHistory: "View history",
-    emptyDefault: "You've seen all our picks for this search. Try a different craving, vibe, or budget, or check your history below.",
+    emptyDefault: "You've seen all our picks for this search. Try a different craving, vibe, or budget.",
     emptyWiden: (dist) => `You've seen everything within ${dist} km. Widen the radius, or change what you're craving.`,
     widenBtn: (label) => `📍 Try ${label} instead`,
     historyTitle: "Places you've been",
     historyEmpty: "Nothing yet — places you commit to will show up here.",
     letsGo: "Let's go", gotIt: "Got it", signOut: "Sign out",
     earlyBeta: "Early beta", about: "About",
+    navHome: "Home", navHistory: "History", navSuggest: "Suggest",
+    suggestTitle: "Suggest a place",
+    suggestHint: "Know a great spot we're missing? Tell us about it.",
+    suggestName: "Restaurant name *",
+    suggestArea: "Area / Address",
+    suggestNotes: "Notes",
+    suggestSubmit: "Submit suggestion",
+    usingLocation: "Using your location",
     welcomeGreet: (name) => `Hey ${name}! Welcome to Makan <span>Mana</span>`,
     welcomeP1: "Can't decide where to eat? Swipe through nearby picks and go — no more scrolling long lists.",
-    welcomeP2: "We'll ask for your location so distances are real, not guessed. It's used only in your browser for this session, nothing is sent anywhere or stored.",
-    welcomeP3: "This is an early beta: restaurant details are still being filled in and some info (like halal status) is reported by users rather than officially verified — we'd love to hear what you think.",
+    welcomeP2: "We'll ask for your location so distances are real. It's used only in your browser — nothing is sent anywhere.",
+    welcomeP3: "This is an early beta: restaurant details are still being filled in and some info is reported by users rather than officially verified.",
     aboutTitle: "Makan <span>Mana</span>",
     aboutSignedIn: (name, email) => `Signed in as <strong>${name}</strong> (${email})`,
     aboutP1: "Makan Mana helps you decide where to eat by swiping through nearby picks instead of scrolling endless lists.",
     aboutP2: "Your location is used only in this browser to calculate real distances — it isn't sent anywhere or stored.",
-    aboutP3: "This is an early beta. Restaurant data is still being filled in, and info like halal status or pork/alcohol is reported by fellow users, not an official source yet. Thanks for trying it out — feedback is very welcome.",
+    aboutP3: "This is an early beta. Restaurant data is still being filled in, and info like halal status is reported by fellow users, not an official source yet.",
   },
   bm: {
     authTagline: "Putuskan tempat makan, dalam beberapa saat.",
@@ -118,7 +140,7 @@ const T = {
     dietHint: "Kami masih membangunkan maklumat sijil halal. Buat masa ini, penapis ini berdasarkan sama ada tempat itu diketahui tidak menggunakan babi atau lard.",
     modeLabel: "Mod",
     modeSurprise: "🎲 Kejutkan saya", modeComfort: "🏠 Pilihan biasa",
-    hintSurprise: "Kami akan tunjukkan tempat yang belum anda cuba dahulu — sesuai untuk mencuba sesuatu yang baharu.",
+    hintSurprise: "Kami akan tunjukkan tempat yang belum anda cuba dahulu — sesuai untuk mencuba sesuatu baharu.",
     hintComfort: "Kami akan tunjukkan tempat yang anda suka bersama cadangan baharu — sesuai untuk pilihan yang lebih selamat.",
     startBtn: "Mula",
     loadingPlaces: "Mencari tempat berdekatan…",
@@ -131,7 +153,7 @@ const T = {
     sectionCommunity: "Bantu pengguna lain — apa yang anda tahu tentang tempat ini?",
     viewOnMaps: "Menu tidak tersedia · Lihat di Google Maps",
     reportNoPork: "🚫🐖 Tiada babi/lard", reportHalal: "🕌 Ada sijil halal", reportAlcohol: "🍺 Ada minuman beralkohol",
-    reportDisclaimer: "Ini daripada pengguna lain, bukan sumber rasmi — anggap sebagai panduan sahaja, bukan jaminan.",
+    reportDisclaimer: "Ini daripada pengguna lain, bukan sumber rasmi — anggap sebagai panduan sahaja.",
     reviewBy: "penguji awal",
     greatChoice: "Pilihan terbaik! 🎉",
     navigateWith: "Navigasi dengan",
@@ -146,15 +168,22 @@ const T = {
     historyEmpty: "Belum ada lagi — tempat yang anda pilih akan muncul di sini.",
     letsGo: "Jom!", gotIt: "Faham", signOut: "Log keluar",
     earlyBeta: "Beta awal", about: "Mengenai",
+    navHome: "Utama", navHistory: "Sejarah", navSuggest: "Cadang",
+    suggestTitle: "Cadangkan tempat",
+    suggestHint: "Tahu tempat makan yang bagus? Beritahu kami.",
+    suggestName: "Nama restoran *",
+    suggestArea: "Kawasan / Alamat",
+    suggestNotes: "Nota",
+    suggestSubmit: "Hantar cadangan",
     welcomeGreet: (name) => `Hai ${name}! Selamat datang ke Makan <span>Mana</span>`,
     welcomeP1: "Tak tahu nak makan di mana? Swipe pilihan berdekatan dan pergi — tiada lagi tatal senarai panjang.",
-    welcomeP2: "Kami akan meminta lokasi anda supaya jarak adalah tepat. Lokasi digunakan dalam pelayar anda sahaja untuk sesi ini.",
-    welcomeP3: "Ini adalah beta awal: maklumat restoran masih dilengkapkan dan sesetengah info (seperti status halal) dilaporkan oleh pengguna, bukan disahkan secara rasmi.",
+    welcomeP2: "Kami akan meminta lokasi anda supaya jarak adalah tepat. Lokasi digunakan dalam pelayar anda sahaja.",
+    welcomeP3: "Ini adalah beta awal: maklumat restoran masih dilengkapkan dan sesetengah info dilaporkan oleh pengguna.",
     aboutTitle: "Makan <span>Mana</span>",
     aboutSignedIn: (name, email) => `Log masuk sebagai <strong>${name}</strong> (${email})`,
-    aboutP1: "Makan Mana membantu anda memutuskan tempat makan dengan swipe pilihan berdekatan, bukan tatal senarai panjang.",
+    aboutP1: "Makan Mana membantu anda memutuskan tempat makan dengan swipe pilihan berdekatan.",
     aboutP2: "Lokasi anda hanya digunakan dalam pelayar ini untuk mengira jarak sebenar — ia tidak dihantar atau disimpan.",
-    aboutP3: "Ini adalah beta awal. Data restoran masih dilengkapkan, dan maklumat seperti status halal atau babi/alkohol dilaporkan oleh pengguna, bukan sumber rasmi. Terima kasih!",
+    aboutP3: "Ini adalah beta awal. Data restoran masih dilengkapkan, dan maklumat seperti status halal dilaporkan oleh pengguna, bukan sumber rasmi.",
   }
 };
 
@@ -196,13 +225,8 @@ function setLang(lang) {
 // DEFAULT_COORDS defined in data.js
 
 const prefs = {
-  meal: "lunch",
-  budget: 2,
-  vibes: new Set(["quick-bite"]),
-  craving: "",
-  distance: "any",
-  diet: "none",
-  mode: "comfort",
+  meal: "lunch", budget: 2, vibes: new Set(["quick-bite"]),
+  craving: "", distance: "any", diet: "none", mode: "comfort",
 };
 
 let deck = [];
@@ -211,23 +235,32 @@ let visitedIds = new Set();
 let skippedIds = new Set();
 let history = [];
 let userCoords = null;
-let nearbyRestaurants = [];        // restaurants fetched from Google Places
+let currentUser = null;
+let nearbyRestaurants = [];
 
 // Places API coordination
 let _placesService = null;
 let _mapsReady = false;
-let _pendingGeoCoords = null;      // location resolved before SDK ready
+let _pendingGeoCoords = null;
 let _nearbyFetchPending = false;
 
 const DISTANCE_TIERS = ["2", "5", "10", "any"];
+const NAV_SCREENS = new Set(["screen-prompt", "screen-history", "screen-suggest"]);
 
 // ─── DOM helpers ──────────────────────────────────────────────────────────────
 const $ = (sel, root = document) => root.querySelector(sel);
 const $all = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 function showScreen(id) {
-  $all(".screen").forEach((el) => el.classList.remove("active"));
+  $all(".screen").forEach(el => el.classList.remove("active"));
   $(`#${id}`).classList.add("active");
+  // Show/hide bottom nav based on screen
+  const nav = document.getElementById("bottom-nav");
+  if (nav) {
+    const show = NAV_SCREENS.has(id) && currentUser !== null;
+    nav.style.display = show ? "flex" : "none";
+    $all(".nav-tab", nav).forEach(t => t.classList.toggle("active", t.dataset.screen === id));
+  }
   window.scrollTo(0, 0);
 }
 
@@ -239,12 +272,9 @@ function priceLabel(tier) {
 }
 
 // ─── Google Maps Places integration ──────────────────────────────────────────
-
-// Called by Maps JS SDK when it's ready (callback= in script URL)
 window._onMapsReady = () => {
   _placesService = new google.maps.places.PlacesService(document.createElement("div"));
   _mapsReady = true;
-  // If geolocation resolved before SDK was ready, start fetch now
   if (_pendingGeoCoords) {
     const { lat, lng } = _pendingGeoCoords;
     _pendingGeoCoords = null;
@@ -252,7 +282,6 @@ window._onMapsReady = () => {
   }
 };
 
-// Kick off the nearby restaurant fetch (coordinates come from geolocation)
 function _triggerNearbyFetch(lat, lng) {
   if (!_placesService || _nearbyFetchPending) return;
   _nearbyFetchPending = true;
@@ -264,80 +293,59 @@ function _triggerNearbyFetch(lat, lng) {
   });
 }
 
-// Fetch up to 60 restaurants near lat/lng using Places Nearby Search
 async function fetchNearbyRestaurants(lat, lng) {
   if (!_placesService) return [];
   const location = new google.maps.LatLng(lat, lng);
-  const request = {
-    location,
-    radius: 5000,
-    type: "restaurant",
-  };
   const all = [];
   await new Promise((resolve) => {
     function handlePage(results, status, pagination) {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        all.push(...results);
-      }
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) all.push(...results);
       if (pagination && pagination.hasNextPage && all.length < 60) {
         setTimeout(() => pagination.nextPage(), 300);
-      } else {
-        resolve();
-      }
+      } else { resolve(); }
     }
-    _placesService.nearbySearch(request, handlePage);
+    _placesService.nearbySearch({ location, radius: 5000, type: "restaurant" }, handlePage);
   });
   return all.map(mapPlaceToRestaurant).filter(Boolean);
 }
 
-// Business name patterns that indicate non-restaurants slipping through Places API
 const NON_FOOD_PATTERN = /\b(sdn\.?\s*bhd\.?|berhad|consulting|consultant|enterprise|holdings|management|services|agency|solutions|trading|hardware|pharmacy|clinic|hospital|bank|insurance|salon|spa|gym|fitness)\b/i;
 
-// Map a Google Places result object to our restaurant schema
 function mapPlaceToRestaurant(place) {
   if (!place.geometry?.location) return null;
-
-  // Skip permanently closed businesses
   if (place.business_status === "CLOSED_PERMANENTLY") return null;
-
   const name = place.name || "";
-
-  // Skip obvious non-restaurants that Google mis-tagged
   if (NON_FOOD_PATTERN.test(name)) return null;
-
   const types = place.types || [];
   return {
-    id:               place.place_id,
-    name,
-    address:          place.vicinity || "",
-    lat:              place.geometry.location.lat(),
-    lng:              place.geometry.location.lng(),
-    cuisine:          inferCuisine(types, name),
-    priceTier:        place.price_level != null ? Math.max(1, Math.min(3, Math.round(place.price_level * 0.75) + 1)) : 2,
-    noPorkLard:       inferNoPork(types, name),
-    vegetarian:       types.includes("vegetarian_restaurant") || /vegeta/i.test(name),
-    liveMusic:        false,
-    hours:            place.opening_hours?.open_now ? "Open now" : "See Google Maps",
-    meals:            ["breakfast", "lunch", "dinner", "supper"], // inclusive default
-    vibes:            inferVibes(types, place.price_level),
-    emoji:            emojiForTypes(types),
-    gradient:         gradientFromId(place.place_id),
-    menu:             [], // not available from Nearby Search
-    review:           place.rating
-                        ? `Rated ${place.rating}⭐ by ${(place.user_ratings_total || 0).toLocaleString()} Google Maps reviewers.`
-                        : "No rating yet.",
+    id: place.place_id, name,
+    address: place.vicinity || "",
+    lat: place.geometry.location.lat(),
+    lng: place.geometry.location.lng(),
+    cuisine: inferCuisine(types, name),
+    priceTier: place.price_level != null ? Math.max(1, Math.min(3, Math.round(place.price_level * 0.75) + 1)) : 2,
+    noPorkLard: inferNoPork(types, name),
+    vegetarian: types.includes("vegetarian_restaurant") || /vegeta/i.test(name),
+    liveMusic: false,
+    hours: place.opening_hours?.open_now ? "Open now" : "See Google Maps",
+    meals: ["breakfast", "lunch", "dinner", "supper"],
+    vibes: inferVibes(types, place.price_level),
+    emoji: emojiForTypes(types),
+    gradient: gradientFromId(place.place_id),
+    menu: [],
+    review: place.rating
+      ? `Rated ${place.rating}⭐ by ${(place.user_ratings_total || 0).toLocaleString()} Google Maps reviewers.`
+      : "No rating yet.",
     communityReports: { noPorkLard: 0, halalCert: 0, alcohol: 0 },
-    _placePhotos:     (place.photos || []).slice(0, 5).map(p => p.getUrl({ maxWidth: 800 })),
-    placeId:          place.place_id,
-    rating:           place.rating || 0,
-    _fromPlaces:      true,
+    _placePhotos: (place.photos || []).slice(0, 5).map(p => p.getUrl({ maxWidth: 800 })),
+    placeId: place.place_id,
+    rating: place.rating || 0,
+    _fromPlaces: true,
   };
 }
 
 // ─── Places inference helpers ─────────────────────────────────────────────────
-
 function inferCuisine(types, name) {
-  const n = name.toLowerCase();
   if (/mamak|nasi kandar/i.test(name))        return "Mamak / Nasi Kandar";
   if (/nasi lemak/i.test(name))               return "Nasi Lemak";
   if (/roti canai|roti|murtabak/i.test(name)) return "Mamak / Roti";
@@ -346,17 +354,15 @@ function inferCuisine(types, name) {
   if (/dim sum/i.test(name))                  return "Chinese / Dim Sum";
   if (/char kuey|char kway|hokkien mee/i.test(name)) return "Chinese / Char Kuey Teow";
   if (/bak kut teh/i.test(name))              return "Chinese / Bak Kut Teh";
-  if (/kopitiam|kopi tiam|kopi|mamak/i.test(name)) return "Kopitiam";
+  if (/kopitiam|kopi tiam/i.test(name))       return "Kopitiam";
   if (/sushi|japanese|ramen|udon/i.test(name)) return "Japanese";
   if (/korean|k-bbq|kbbq/i.test(name))       return "Korean";
   if (/thai|tomyam|tom yam/i.test(name))      return "Thai";
   if (/indian|tandoori|biryani|briyani/i.test(name)) return "Indian";
   if (/burger/i.test(name))                   return "Western / Burgers";
   if (/pizza/i.test(name))                    return "Western / Pizza";
-  if (/steak|steakhouse/i.test(name))         return "Western / Steakhouse";
+  if (/steak/i.test(name))                    return "Western / Steakhouse";
   if (/seafood|ketam|crab|prawn/i.test(name)) return "Seafood";
-  if (/chinese|cantonese|hakka/i.test(name))  return "Chinese";
-  if (/malay|melayu/i.test(name))             return "Malaysian";
   if (/vietnamese|pho|banh mi/i.test(name))   return "Vietnamese";
   if (/arabic|mandi|yemeni/i.test(name))      return "Arabic / Yemeni";
   if (types.includes("chinese_restaurant"))   return "Chinese";
@@ -369,15 +375,13 @@ function inferCuisine(types, name) {
   if (types.includes("seafood_restaurant"))   return "Seafood";
   if (types.includes("vegetarian_restaurant")) return "Vegetarian";
   if (types.includes("cafe"))                 return "Cafe";
-  if (types.includes("bar"))                  return "Bar / Western";
   if (types.includes("bakery"))               return "Bakery / Cafe";
+  if (types.includes("bar"))                  return "Bar / Western";
   return "Restaurant";
 }
 
 function inferNoPork(types, name) {
-  // Malay, Indian-Muslim, and mamak establishments typically don't serve pork
   if (/halal|muslim|malay|melayu|nasi|mamak|kandar|mandi|arabic|yemeni|briyani|biryani/i.test(name)) return true;
-  if (/restoran\s+\w+\s*(bin|binti|md|mohd)/i.test(name)) return true;
   if (types.includes("indian_restaurant")) return true;
   if (types.includes("chinese_restaurant")) return false;
   if (types.includes("bar")) return false;
@@ -385,27 +389,21 @@ function inferNoPork(types, name) {
 }
 
 function inferVibes(types, priceLevel) {
-  const vibes = [];
   const price = priceLevel ?? 2;
-  if (price <= 1) vibes.push("quick-bite");
-  else vibes.push("sit-down");
-  if (types.includes("bar") || types.includes("night_club")) {
-    if (!vibes.includes("sit-down")) vibes.push("sit-down");
-  }
-  return vibes.length ? vibes : ["quick-bite"];
+  const vibes = price <= 1 ? ["quick-bite"] : ["sit-down"];
+  if (types.includes("bar") && !vibes.includes("sit-down")) vibes.push("sit-down");
+  return vibes;
 }
 
 const TYPE_EMOJI = {
-  japanese_restaurant: "🍣", korean_restaurant: "🥩", chinese_restaurant: "🥢",
-  indian_restaurant: "🍛", thai_restaurant: "🌶️", italian_restaurant: "🍝",
-  pizza_restaurant: "🍕", burger_restaurant: "🍔", seafood_restaurant: "🦐",
-  vegetarian_restaurant: "🥗", cafe: "☕", bakery: "🥐", bar: "🍺",
-  fast_food_restaurant: "🍟",
+  japanese_restaurant:"🍣", korean_restaurant:"🥩", chinese_restaurant:"🥢",
+  indian_restaurant:"🍛", thai_restaurant:"🌶️", italian_restaurant:"🍝",
+  pizza_restaurant:"🍕", burger_restaurant:"🍔", seafood_restaurant:"🦐",
+  vegetarian_restaurant:"🥗", cafe:"☕", bakery:"🥐", bar:"🍺",
+  fast_food_restaurant:"🍟",
 };
 function emojiForTypes(types) {
-  for (const type of types) {
-    if (TYPE_EMOJI[type]) return TYPE_EMOJI[type];
-  }
+  for (const type of types) { if (TYPE_EMOJI[type]) return TYPE_EMOJI[type]; }
   return "🍽️";
 }
 
@@ -432,7 +430,7 @@ const CUISINE_PHOTOS = [
   { test: /nasi lemak/, photos: [WIKI("Nasi lemak on banana leaf.jpg"), WIKI("Nasi_Lemak_pack.jpg"), WIKI("Nasi Lemak Antarabangsa.jpg")] },
   { test: /mamak|roti canai/, photos: [WIKI("Roti canai and Teh Tarik, a typical Malaysian breakfast.jpg"), WIKI("Murtabak.jpg"), WIKI("Teh tarik.JPG"), WIKI("Maggi goreng.jpg")] },
   { test: /satay/, photos: [WIKI("Chicken satay 86.jpg"), WIKI("Satay chicken.jpg"), WIKI("Satay-bali.jpg")] },
-  { test: /kopitiam|kaya toast|hainan coffee/, photos: [WIKI("Ya Kun Kaya Toast.JPG"), WIKI("Kopi O.jpg"), WIKI("Caffe latte (5665976602).jpg")] },
+  { test: /kopitiam|kaya toast/, photos: [WIKI("Ya Kun Kaya Toast.JPG"), WIKI("Kopi O.jpg"), WIKI("Caffe latte (5665976602).jpg")] },
   { test: /banana leaf/, photos: [WIKI("Food served on Banana Leaf.jpg"), WIKI("Banana leaf rice.jpg"), WIKI("South Indian banana leaf rice.jpg")] },
   { test: /char kuey teow|char kway teow|hokkien mee/, photos: [WIKI("Char kway teow.jpg"), WIKI("Penang char kway teow.jpg"), WIKI("Hokkien Mee.jpg")] },
   { test: /dim sum/, photos: [WIKI("Dim Sum Breakfast.jpg"), WIKI("Dimsum (7235491694).jpg"), WIKI("Chinese dimsum.jpg")] },
@@ -446,19 +444,18 @@ const CUISINE_PHOTOS = [
   { test: /pasta|italian/, photos: [WIKI("Spaghetti alla carbonara (32998643591).jpg"), WIKI("Spaghetti bolognese.jpg")] },
   { test: /chicken rice|hainan/, photos: [WIKI("Tian Tian Hainanese Chicken Rice, Singapore.JPG"), WIKI("Hainanese chicken rice.jpg")] },
   { test: /fried chicken|fast food/, photos: [WIKI("Fried-Chicken-Set.jpg"), WIKI("Fried chicken.jpg")] },
-  { test: /thai|tom yam|tom yum/, photos: [WIKI("Tom yum goong-01.jpg"), WIKI("Pad Thai (1).jpg"), WIKI("Green curry.jpg"), WIKI("Mango sticky rice (Thailand).jpg")] },
-  { test: /mandi|arabic|middle eastern|yemeni/, photos: [WIKI("Nasi Arab Mandy.jpg"), WIKI("Mandi Rice.jpg")] },
+  { test: /thai|tom yam|tom yum/, photos: [WIKI("Tom yum goong-01.jpg"), WIKI("Pad Thai (1).jpg"), WIKI("Green curry.jpg")] },
+  { test: /mandi|arabic|yemeni/, photos: [WIKI("Nasi Arab Mandy.jpg"), WIKI("Mandi Rice.jpg")] },
   { test: /korean/, photos: [WIKI("Korean BBQ-Galbisal-01.jpg"), WIKI("Bibimbap served in a stone pot.jpg"), WIKI("Korean fried chicken.jpg")] },
   { test: /vietnamese|banh mi|pho\b/, photos: [WIKI("Two mini banh mi Vietnamese sandwiches.jpg"), WIKI("Pho with meat.jpg")] },
-  { test: /mexican|taco/, photos: [WIKI("01 Tacos al Pastor.jpg"), WIKI("Tex-mex tacos.jpg")] },
-  { test: /steamboat|hotpot|mongolian/, photos: [WIKI("Hotpot.jpg"), WIKI("Steamboat food.jpg")] },
-  { test: /dessert|cake|gelato|ice cream|cendol|ais kacang/, photos: [WIKI("Piece of cake bakery and café.jpg"), WIKI("Cendol (1).jpg"), WIKI("Ice kacang.jpg")] },
+  { test: /steamboat|hotpot/, photos: [WIKI("Hotpot.jpg"), WIKI("Steamboat food.jpg")] },
+  { test: /dessert|cake|cendol|ais kacang/, photos: [WIKI("Piece of cake bakery and café.jpg"), WIKI("Cendol (1).jpg"), WIKI("Ice kacang.jpg")] },
   { test: /cafe|coffee/, photos: [WIKI("Caffe latte (5665976602).jpg"), WIKI("Pour-over coffee.jpg"), WIKI("Flat white coffee.jpg")] },
   { test: /seafood|fish/, photos: [WIKI("Plated grilled fish (cropped).jpg"), WIKI("Chili crab.jpg"), WIKI("Asam pedas fish.jpg")] },
   { test: /indian|naan|curry/, photos: [WIKI("Cheese Naan.jpg"), WIKI("Butter chicken-edited.jpg"), WIKI("Dal makhani.jpg")] },
-  { test: /rendang|padang|minang|indonesian|nyonya|peranakan/, photos: [WIKI("Nasi Padang With beef rendang.jpg"), WIKI("Beef rendang.jpg")] },
+  { test: /rendang|padang|indonesian/, photos: [WIKI("Nasi Padang With beef rendang.jpg"), WIKI("Beef rendang.jpg")] },
   { test: /western/, photos: [WIKI("Grilled steak with baked potato and gravy.jpg"), WIKI("Fish and chips.jpg")] },
-  { test: /vegetarian|vegan/, photos: [WIKI("Vegetable curry (3587163023).jpg"), WIKI("Buddha bowl.jpg")] },
+  { test: /vegetarian|vegan/, photos: [WIKI("Vegetable curry (3587163023).jpg")] },
 ];
 
 function getCuisinePhotos(r) {
@@ -472,9 +469,9 @@ function getCuisinePhotos(r) {
 }
 
 async function getPhotos(r) {
-  if (r.photos?.length)       return r.photos;        // manual override in data.js
-  if (r._placePhotos?.length) return r._placePhotos;  // from Google Places search
-  return getCuisinePhotos(r);                          // cuisine-rotation fallback
+  if (r.photos?.length)       return r.photos;
+  if (r._placePhotos?.length) return r._placePhotos;
+  return getCuisinePhotos(r);
 }
 
 async function loadCardPhoto(r, photoEl) {
@@ -499,39 +496,24 @@ async function buildPhotoGallery(r, container) {
   const photos = await getPhotos(r);
   container.innerHTML = "";
   container.style.background = r.gradient;
+  if (!photos.length) { container.innerHTML = `<div class="emoji-sticker">${r.emoji}</div>`; return; }
 
-  if (!photos.length) {
-    container.innerHTML = `<div class="emoji-sticker">${r.emoji}</div>`;
-    return;
-  }
-
-  const wrap = document.createElement("div");
-  wrap.className = "gallery-wrap";
-
-  const track = document.createElement("div");
-  track.className = "gallery-track";
+  const wrap  = document.createElement("div"); wrap.className = "gallery-wrap";
+  const track = document.createElement("div"); track.className = "gallery-track";
   photos.forEach(url => {
-    const slide = document.createElement("div");
-    slide.className = "gallery-slide";
-    const img = document.createElement("img");
-    img.className = "gallery-img";
-    img.alt = "Restaurant photo";
-    img.src = url;
-    slide.appendChild(img);
-    track.appendChild(slide);
+    const slide = document.createElement("div"); slide.className = "gallery-slide";
+    const img = document.createElement("img"); img.className = "gallery-img"; img.alt = "Restaurant photo"; img.src = url;
+    slide.appendChild(img); track.appendChild(slide);
   });
   wrap.appendChild(track);
 
   const badge = document.createElement("div");
-  badge.className = "emoji-sticker emoji-badge";
-  badge.textContent = r.emoji;
+  badge.className = "emoji-sticker emoji-badge"; badge.textContent = r.emoji;
   wrap.appendChild(badge);
 
-  let idx = 0;
-  let dots = null;
+  let idx = 0, dots = null;
   if (photos.length > 1) {
-    dots = document.createElement("div");
-    dots.className = "gallery-dots";
+    dots = document.createElement("div"); dots.className = "gallery-dots";
     photos.forEach((_, i) => {
       const d = document.createElement("span");
       d.className = "gallery-dot" + (i === 0 ? " active" : "");
@@ -548,26 +530,14 @@ async function buildPhotoGallery(r, container) {
 
   let tx = 0;
   track.addEventListener("touchstart", e => { tx = e.touches[0].clientX; }, { passive: true });
-  track.addEventListener("touchend", e => {
-    const dx = e.changedTouches[0].clientX - tx;
-    if (dx < -40) goTo(idx + 1);
-    else if (dx > 40) goTo(idx - 1);
-  });
+  track.addEventListener("touchend",   e => { const dx = e.changedTouches[0].clientX - tx; if (dx < -40) goTo(idx+1); else if (dx > 40) goTo(idx-1); });
   let mx = 0, dragging = false;
   track.addEventListener("mousedown", e => { mx = e.clientX; dragging = true; e.preventDefault(); });
-  track.addEventListener("mouseup", e => {
-    if (!dragging) return;
-    dragging = false;
-    const dx = e.clientX - mx;
-    if (dx < -40) goTo(idx + 1);
-    else if (dx > 40) goTo(idx - 1);
-  });
+  track.addEventListener("mouseup",   e => { if (!dragging) return; dragging = false; const dx = e.clientX - mx; if (dx < -40) goTo(idx+1); else if (dx > 40) goTo(idx-1); });
   container.appendChild(wrap);
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
-let currentUser = null;
-
 function getUsers() {
   try { return JSON.parse(localStorage.getItem("mm_users") || "[]"); } catch { return []; }
 }
@@ -576,6 +546,7 @@ function bootApp() {
   applyTranslations();
   showScreen("screen-prompt");
   requestLocation();
+  loadHistory();
   if (!localStorage.getItem("mm_welcomed")) {
     showModal(welcomeHTML(), t("letsGo"));
     localStorage.setItem("mm_welcomed", "1");
@@ -583,15 +554,83 @@ function bootApp() {
 }
 
 function initAuth() {
-  try {
-    const s = localStorage.getItem("mm_session");
-    if (s) currentUser = JSON.parse(s);
-  } catch {}
-  applyTranslations();
-  if (currentUser) { bootApp(); return; }
-  showScreen("screen-auth");
+  if (_firebaseReady) {
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = { uid: user.uid, name: user.displayName || user.email, email: user.email };
+        bootApp();
+      } else {
+        currentUser = null;
+        applyTranslations();
+        showScreen("screen-auth");
+      }
+    });
+  } else {
+    // Fallback: localStorage mock auth
+    try { const s = localStorage.getItem("mm_session"); if (s) currentUser = JSON.parse(s); } catch {}
+    applyTranslations();
+    if (currentUser) { bootApp(); return; }
+    showScreen("screen-auth");
+  }
 }
 
+// Sign in
+$("#signin-btn").addEventListener("click", async () => {
+  const email = $("#signin-email").value.trim().toLowerCase();
+  const pwd   = $("#signin-password").value;
+  const errEl = $("#signin-error");
+  errEl.textContent = "";
+  if (!email || !pwd) { errEl.textContent = t("errEnterCreds"); return; }
+
+  if (_firebaseReady) {
+    try { await auth.signInWithEmailAndPassword(email, pwd); }
+    catch { errEl.textContent = t("errWrongCreds"); }
+  } else {
+    const user = getUsers().find(u => u.email === email && u.password === pwd);
+    if (!user) { errEl.textContent = t("errWrongCreds"); return; }
+    currentUser = { email: user.email, name: user.name };
+    localStorage.setItem("mm_session", JSON.stringify(currentUser));
+    bootApp();
+  }
+});
+
+// Sign up
+$("#signup-btn").addEventListener("click", async () => {
+  const name  = $("#signup-name").value.trim();
+  const email = $("#signup-email").value.trim().toLowerCase();
+  const pwd   = $("#signup-password").value;
+  const errEl = $("#signup-error");
+  errEl.textContent = "";
+  if (!name)                         { errEl.textContent = t("errEnterName");   return; }
+  if (!email || !email.includes("@")) { errEl.textContent = t("errBadEmail");  return; }
+  if (pwd.length < 8)                { errEl.textContent = t("errShortPw");     return; }
+
+  if (_firebaseReady) {
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email, pwd);
+      await cred.user.updateProfile({ displayName: name });
+    } catch (e) {
+      errEl.textContent = e.code === "auth/email-already-in-use" ? t("errEmailExists") : e.message;
+    }
+  } else {
+    const users = getUsers();
+    if (users.find(u => u.email === email)) { errEl.textContent = t("errEmailExists"); return; }
+    users.push({ email, name, password: pwd });
+    localStorage.setItem("mm_users", JSON.stringify(users));
+    currentUser = { email, name };
+    localStorage.setItem("mm_session", JSON.stringify(currentUser));
+    bootApp();
+  }
+});
+
+// Google sign-in
+$("#google-signin-btn").addEventListener("click", async () => {
+  if (!_firebaseReady) { $("#signin-error").textContent = "Firebase not configured yet."; return; }
+  try { await auth.signInWithPopup(googleProvider); }
+  catch (e) { $("#signin-error").textContent = e.message; }
+});
+
+// Auth tabs
 $all(".auth-tab").forEach(tab => {
   tab.addEventListener("click", () => {
     $all(".auth-tab").forEach(t => t.classList.remove("active"));
@@ -601,46 +640,13 @@ $all(".auth-tab").forEach(tab => {
   });
 });
 
-$("#signin-btn").addEventListener("click", () => {
-  const email = $("#signin-email").value.trim().toLowerCase();
-  const pwd   = $("#signin-password").value;
-  const errEl = $("#signin-error");
-  errEl.textContent = "";
-  if (!email || !pwd) { errEl.textContent = t("errEnterCreds"); return; }
-  const user = getUsers().find(u => u.email === email && u.password === pwd);
-  if (!user) { errEl.textContent = t("errWrongCreds"); return; }
-  currentUser = { email: user.email, name: user.name };
-  localStorage.setItem("mm_session", JSON.stringify(currentUser));
-  bootApp();
-});
-
-$("#signup-btn").addEventListener("click", () => {
-  const name  = $("#signup-name").value.trim();
-  const email = $("#signup-email").value.trim().toLowerCase();
-  const pwd   = $("#signup-password").value;
-  const errEl = $("#signup-error");
-  errEl.textContent = "";
-  if (!name)                       { errEl.textContent = t("errEnterName");   return; }
-  if (!email || !email.includes("@")) { errEl.textContent = t("errBadEmail"); return; }
-  if (pwd.length < 8)              { errEl.textContent = t("errShortPw");     return; }
-  const users = getUsers();
-  if (users.find(u => u.email === email)) { errEl.textContent = t("errEmailExists"); return; }
-  users.push({ email, name, password: pwd });
-  localStorage.setItem("mm_users", JSON.stringify(users));
-  currentUser = { email, name };
-  localStorage.setItem("mm_session", JSON.stringify(currentUser));
-  bootApp();
-});
-
 // ─── Welcome / About modal ────────────────────────────────────────────────────
 function welcomeHTML() {
   const first = currentUser ? currentUser.name.split(" ")[0] : "there";
   return `
     <div class="modal-badge">${t("earlyBeta")}</div>
     <h2>${t("welcomeGreet", first)}</h2>
-    <p>${t("welcomeP1")}</p>
-    <p>${t("welcomeP2")}</p>
-    <p>${t("welcomeP3")}</p>
+    <p>${t("welcomeP1")}</p><p>${t("welcomeP2")}</p><p>${t("welcomeP3")}</p>
   `;
 }
 
@@ -649,9 +655,7 @@ function aboutHTML() {
     <div class="modal-badge">${t("about")}</div>
     <h2>${t("aboutTitle")}</h2>
     <p>${t("aboutSignedIn", currentUser?.name || "", currentUser?.email || "")}</p>
-    <p>${t("aboutP1")}</p>
-    <p>${t("aboutP2")}</p>
-    <p>${t("aboutP3")}</p>
+    <p>${t("aboutP1")}</p><p>${t("aboutP2")}</p><p>${t("aboutP3")}</p>
     <button id="signout-btn" class="btn btn-outline" style="margin-top:8px;">${t("signOut")}</button>
   `;
 }
@@ -663,30 +667,30 @@ function showModal(html, closeLabel) {
   const signout = $("#signout-btn");
   if (signout) {
     signout.addEventListener("click", () => {
-      localStorage.removeItem("mm_session");
-      currentUser = null;
       hideModal();
-      showScreen("screen-auth");
+      if (_firebaseReady) {
+        auth.signOut();
+      } else {
+        localStorage.removeItem("mm_session");
+        currentUser = null;
+        showScreen("screen-auth");
+      }
     });
   }
 }
 function hideModal() { $("#modal-overlay").classList.remove("open"); }
 $("#modal-close").addEventListener("click", hideModal);
-$("#modal-overlay").addEventListener("click", (e) => { if (e.target.id === "modal-overlay") hideModal(); });
+$("#modal-overlay").addEventListener("click", e => { if (e.target.id === "modal-overlay") hideModal(); });
 
 // ─── Location ─────────────────────────────────────────────────────────────────
 function haversineKm(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const R = 6371, dLat = ((lat2-lat1)*Math.PI)/180, dLng = ((lng2-lng1)*Math.PI)/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos((lat1*Math.PI)/180)*Math.cos((lat2*Math.PI)/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
-
 function distanceTo(r) {
-  const origin = userCoords || DEFAULT_COORDS;
-  return haversineKm(origin.lat, origin.lng, r.lat, r.lng);
+  const o = userCoords || DEFAULT_COORDS;
+  return haversineKm(o.lat, o.lng, r.lat, r.lng);
 }
 
 async function fetchNeighborhood(lat, lng) {
@@ -695,8 +699,7 @@ async function fetchNeighborhood(lat, lng) {
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=en`,
       { headers: { "User-Agent": "MakanMana-prototype/1.0" } }
     );
-    const d = await res.json();
-    const a = d.address || {};
+    const d = await res.json(); const a = d.address || {};
     return a.suburb || a.neighbourhood || a.city_district || a.town || a.village || "";
   } catch { return ""; }
 }
@@ -706,8 +709,7 @@ function requestLocation() {
   statusEl._area = "";
   if (!("geolocation" in navigator)) {
     statusEl.textContent = t("locationNoSupport");
-    statusEl.classList.add("denied");
-    return;
+    statusEl.classList.add("denied"); return;
   }
   statusEl.textContent = t("gettingLocation");
   statusEl.classList.remove("granted", "denied");
@@ -715,19 +717,11 @@ function requestLocation() {
     (pos) => {
       userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       statusEl.textContent = `📍 ${t("usingLocation")}`;
-      statusEl.classList.add("granted");
-      statusEl.classList.remove("denied");
-
-      // Trigger nearby restaurant fetch (handles race with SDK loading)
+      statusEl.classList.add("granted"); statusEl.classList.remove("denied");
       if (PLACES_API_KEY) {
-        if (_mapsReady) {
-          _triggerNearbyFetch(pos.coords.latitude, pos.coords.longitude);
-        } else {
-          _pendingGeoCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        }
+        if (_mapsReady) _triggerNearbyFetch(pos.coords.latitude, pos.coords.longitude);
+        else _pendingGeoCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       }
-
-      // Reverse geocode for neighborhood name
       fetchNeighborhood(pos.coords.latitude, pos.coords.longitude).then(area => {
         statusEl._area = area;
         if (area) statusEl.textContent = `📍 ${t("usingLocation")} · ${area}`;
@@ -736,29 +730,23 @@ function requestLocation() {
     () => {
       userCoords = null;
       statusEl.textContent = t("locationUnavailable");
-      statusEl.classList.add("denied");
-      statusEl.classList.remove("granted");
+      statusEl.classList.add("denied"); statusEl.classList.remove("granted");
     },
     { timeout: 8000 }
   );
 }
-
 $("#location-status").addEventListener("click", requestLocation);
 
-// ─── Start button loading state ───────────────────────────────────────────────
+// ─── Start button ─────────────────────────────────────────────────────────────
 function updateStartButton() {
   const btn = document.getElementById("start-swiping");
   if (!btn) return;
   if (_nearbyFetchPending) {
-    btn.textContent = t("loadingPlaces");
-    btn.disabled = true;
+    btn.textContent = t("loadingPlaces"); btn.disabled = true;
   } else if (nearbyRestaurants.length > 0) {
-    const total = RESTAURANTS.length + nearbyRestaurants.length;
-    btn.textContent = t("startBtnCount", total);
-    btn.disabled = false;
+    btn.textContent = t("startBtnCount", RESTAURANTS.length + nearbyRestaurants.length); btn.disabled = false;
   } else {
-    btn.textContent = t("startBtn");
-    btn.disabled = false;
+    btn.textContent = t("startBtn"); btn.disabled = false;
   }
 }
 
@@ -766,61 +754,59 @@ function updateStartButton() {
 function setChipValue(group, value) {
   const row = $(`.chip-row[data-group="${group}"]`);
   if (!row) return;
-  $all(".chip", row).forEach((c) => c.classList.toggle("active", c.dataset.value === String(value)));
+  $all(".chip", row).forEach(c => c.classList.toggle("active", c.dataset.value === String(value)));
   prefs[group] = group === "budget" ? Number(value) : String(value);
 }
 
-$all('.chip-row[data-mode="single"]').forEach((row) => {
+$all('.chip-row[data-mode="single"]').forEach(row => {
   const group = row.dataset.group;
-  row.addEventListener("click", (e) => {
-    const chip = e.target.closest(".chip");
-    if (!chip) return;
+  row.addEventListener("click", e => {
+    const chip = e.target.closest(".chip"); if (!chip) return;
     setChipValue(group, chip.dataset.value);
   });
 });
 
-$all('.chip-row[data-mode="multi"]').forEach((row) => {
-  row.addEventListener("click", (e) => {
-    const chip = e.target.closest(".chip");
-    if (!chip) return;
+$all('.chip-row[data-mode="multi"]').forEach(row => {
+  row.addEventListener("click", e => {
+    const chip = e.target.closest(".chip"); if (!chip) return;
     chip.classList.toggle("active");
     const v = chip.dataset.value;
-    if (chip.classList.contains("active")) prefs.vibes.add(v);
-    else prefs.vibes.delete(v);
+    if (chip.classList.contains("active")) prefs.vibes.add(v); else prefs.vibes.delete(v);
   });
 });
 
-$("#craving-text").addEventListener("input", (e) => {
-  prefs.craving = e.target.value.trim().toLowerCase();
-});
+$("#craving-text").addEventListener("input", e => { prefs.craving = e.target.value.trim().toLowerCase(); });
 
 function updateModeHint() {
   const hint = $("#mode-hint");
   if (hint) hint.textContent = t(prefs.mode === "surprise" ? "hintSurprise" : "hintComfort");
 }
 
-$all(".mode-btn").forEach((btn) => {
+$all(".mode-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    $all(".mode-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    prefs.mode = btn.dataset.mode;
-    updateModeHint();
+    $all(".mode-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active"); prefs.mode = btn.dataset.mode; updateModeHint();
   });
 });
 updateModeHint();
 
 $("#profile-btn").addEventListener("click", () => showModal(aboutHTML(), t("gotIt")));
+document.getElementById("lang-btn").addEventListener("click", () => setLang(currentLang === "en" ? "bm" : "en"));
 
-// ─── Language toggle ──────────────────────────────────────────────────────────
-document.getElementById("lang-btn").addEventListener("click", () => {
-  setLang(currentLang === "en" ? "bm" : "en");
+// ─── Bottom nav ───────────────────────────────────────────────────────────────
+$all(".nav-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    const target = tab.dataset.screen;
+    if (target === "screen-history") renderHistory();
+    if (target === "screen-suggest") renderSuggest();
+    showScreen(target);
+  });
 });
 
-// ─── Location label (from address string) ─────────────────────────────────────
+// ─── Location label ───────────────────────────────────────────────────────────
 const STREET_PREFIX = /^(jalan|lorong|persiaran|jln|lot\b|\d)/i;
 function areaLabel(r) {
   if (r._fromPlaces) {
-    // vicinity from Places is already a short local address — extract area portion
     const parts = (r.address || "").split(",").map(s => s.trim());
     return parts[parts.length - 1] || r.address;
   }
@@ -834,38 +820,31 @@ function areaLabel(r) {
 
 // ─── Deck building ────────────────────────────────────────────────────────────
 function buildDeck() {
-  // Merge curated seed (data.js) + live Places results, deduplicate by name
   const seenNames = new Set(RESTAURANTS.map(r => r.name.toLowerCase()));
   const uniquePlaces = nearbyRestaurants.filter(r => !seenNames.has(r.name.toLowerCase()));
-  const allRestaurants = [...RESTAURANTS, ...uniquePlaces];
+  const all = [...RESTAURANTS, ...uniquePlaces];
 
-  return allRestaurants
-    .filter((r) => r.meals.includes(prefs.meal))
-    .filter((r) => {
+  return all
+    .filter(r => r.meals.includes(prefs.meal))
+    .filter(r => {
       if (prefs.diet === "no-pork-lard") return r.noPorkLard;
       if (prefs.diet === "vegetarian")   return r.vegetarian;
       return true;
     })
-    .filter((r) => {
-      if (prefs.distance === "any") return true;
-      return distanceTo(r) <= Number(prefs.distance);
-    })
-    .map((r) => {
+    .filter(r => prefs.distance === "any" || distanceTo(r) <= Number(prefs.distance))
+    .map(r => {
       let score = 0;
       score += 2 - Math.abs(r.priceTier - prefs.budget);
-      prefs.vibes.forEach((v) => {
+      prefs.vibes.forEach(v => {
         if (r.vibes.includes(v)) score += 2;
         if (v === "live-music" && r.liveMusic) score += 3;
       });
       if (prefs.craving) {
         const haystack = [r.name, r.cuisine, ...r.menu.map(m => m.name)].join(" ").toLowerCase();
-        prefs.craving.split(/\s+/).forEach(word => {
-          if (word.length > 2 && haystack.includes(word)) score += 3;
-        });
+        prefs.craving.split(/\s+/).forEach(word => { if (word.length > 2 && haystack.includes(word)) score += 3; });
       }
-      if (visitedIds.has(r.id))  score += prefs.mode === "surprise" ? -6 : 1;
-      if (skippedIds.has(r.id))  score -= 4;
-      // Slight bonus for higher-rated Places results
+      if (visitedIds.has(r.id)) score += prefs.mode === "surprise" ? -6 : 1;
+      if (skippedIds.has(r.id)) score -= 4;
       if (r.rating) score += r.rating * 0.3;
       score += (5 - distanceTo(r)) * 0.2;
       return { r, score };
@@ -875,13 +854,8 @@ function buildDeck() {
 }
 
 function startSwiping() {
-  deck = buildDeck();
-  currentIndex = 0;
-  if (deck.length === 0) {
-    renderEmptyScreen();
-    showScreen("screen-empty");
-    return;
-  }
+  deck = buildDeck(); currentIndex = 0;
+  if (deck.length === 0) { renderEmptyScreen(); showScreen("screen-empty"); return; }
   showScreen("screen-feed");
   renderCurrentCard();
 }
@@ -896,9 +870,7 @@ function dietBadges(r) {
   const badges = [];
   if (r.vegetarian) badges.push('<div class="badge">🥦 Vegetarian</div>');
   else if (r.noPorkLard) badges.push(`<div class="badge">🚫🐖 ${t("dietNoPork")}</div>`);
-  if (r.communityReports.halalCert > 0) {
-    badges.push(`<div class="badge">🕌 Halal cert. reported (${r.communityReports.halalCert})</div>`);
-  }
+  if (r.communityReports.halalCert > 0) badges.push(`<div class="badge">🕌 Halal cert. reported (${r.communityReports.halalCert})</div>`);
   if (r.rating) badges.push(`<div class="badge">⭐ ${r.rating.toFixed(1)}</div>`);
   return badges.join("");
 }
@@ -907,17 +879,14 @@ function renderCurrentCard() {
   const deckEl = $("#deck");
   deckEl.innerHTML = "";
   if (currentIndex >= deck.length) { renderEmptyScreen(); showScreen("screen-empty"); return; }
-
   const r = currentRestaurant();
   const card = document.createElement("div");
   card.className = "card";
-  const photoCount = (r._placePhotos?.length || (r.photos?.length) || 1);
+  const photoCount = r._placePhotos?.length || r.photos?.length || 1;
   card.innerHTML = `
     <div class="card-photo" style="background:${r.gradient}">
       <div class="emoji-sticker">${r.emoji}</div>
       ${photoCount > 1 ? `<div class="photo-count">${t("photoCount", photoCount)}</div>` : ""}
-      <div class="stamp like">LET'S GO</div>
-      <div class="stamp nope">SKIP</div>
     </div>
     <div class="card-name">${r.name}</div>
     <div class="badge-row">
@@ -932,14 +901,12 @@ function renderCurrentCard() {
         : `<div style="color:var(--ink-soft);font-size:12px;">Tap card for more info</div>`}
     </div>
   `;
-  loadCardPhoto(r, card.querySelector(".card-photo")); // async, non-blocking
+  loadCardPhoto(r, card.querySelector(".card-photo"));
   deckEl.appendChild(card);
   attachSwipeHandlers(card);
 }
 
 function attachSwipeHandlers(card) {
-  const likeStamp = card.querySelector(".stamp.like");
-  const nopeStamp = card.querySelector(".stamp.nope");
   let dragging = false, startX = 0, startY = 0, dx = 0, dy = 0;
   const SWIPE_THRESHOLD = 110, TAP_THRESHOLD = 6;
 
@@ -954,13 +921,14 @@ function attachSwipeHandlers(card) {
     const p = e.touches ? e.touches[0] : e;
     dx = p.clientX - startX; dy = p.clientY - startY;
     card.style.transform = `translate(${dx}px,${dy * 0.15}px) rotate(${dx / 18}deg)`;
-    likeStamp.style.opacity = Math.max(0, Math.min(1, dx / 100));
-    nopeStamp.style.opacity = Math.max(0, Math.min(1, -dx / 100));
+    card.classList.toggle("swiping-right", dx > 30);
+    card.classList.toggle("swiping-left",  dx < -30);
     e.preventDefault();
   }
   function onUp() {
     if (!dragging) return;
     dragging = false;
+    card.classList.remove("swiping-right", "swiping-left");
     card.style.transition = "transform .25s ease";
     if (Math.max(Math.abs(dx), Math.abs(dy)) < TAP_THRESHOLD) {
       card.style.transform = "translate(0,0) rotate(0)";
@@ -969,7 +937,6 @@ function attachSwipeHandlers(card) {
     } else if (dx < -SWIPE_THRESHOLD) { flyOut(-1);
     } else {
       card.style.transform = "translate(0,0) rotate(0)";
-      likeStamp.style.opacity = 0; nopeStamp.style.opacity = 0;
     }
     dx = 0; dy = 0;
   }
@@ -989,12 +956,24 @@ function attachSwipeHandlers(card) {
 }
 
 $("#skip-btn").addEventListener("click",   () => { const c = $("#deck .card"); if (c?._flyOut) c._flyOut(-1); });
-$("#commit-btn").addEventListener("click", () => { const c = $("#deck .card"); if (c?._flyOut) c._flyOut(1);  });
+$("#commit-btn").addEventListener("click", () => { const c = $("#deck .card"); if (c?._flyOut) c._flyOut(1); });
 
-function skipCurrent()  { const r = currentRestaurant(); if (r) skippedIds.add(r.id); currentIndex++; renderCurrentCard(); }
-function commitCurrent() {
+function skipCurrent() { const r = currentRestaurant(); if (r) skippedIds.add(r.id); currentIndex++; renderCurrentCard(); }
+
+async function commitCurrent() {
   const r = currentRestaurant();
   visitedIds.add(r.id);
+
+  // Persist to Firestore
+  if (db && currentUser?.uid) {
+    db.collection("users").doc(currentUser.uid).collection("history").add({
+      restaurantId: r.id, name: r.name, address: r.address,
+      cuisine: r.cuisine, emoji: r.emoji, gradient: r.gradient,
+      lat: r.lat, lng: r.lng,
+      committedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).catch(() => {});
+  }
+
   history.unshift({ restaurant: r, whenLabel: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) });
   renderCommit(r);
   showScreen("screen-commit");
@@ -1006,15 +985,13 @@ function openDetail() { renderDetail(currentRestaurant()); showScreen("screen-de
 const REPORT_KEYS = { noPorkLard: "reportNoPork", halalCert: "reportHalal", alcohol: "reportAlcohol" };
 
 function renderDetail(r) {
-  const mapsPlaceUrl = r.placeId
+  const mapsUrl = r.placeId
     ? `https://www.google.com/maps/place/?q=place_id:${r.placeId}`
     : `https://www.google.com/maps/search/${encodeURIComponent(r.name + " " + r.address)}`;
 
   const menuHTML = r.menu.length
     ? r.menu.map(m => `<div class="detail-menu-item"><span>${m.name}</span><span>RM${m.price}</span></div>`).join("")
-    : `<div style="font-size:12.5px;color:var(--ink-soft);">
-        <a href="${mapsPlaceUrl}" target="_blank" rel="noopener" style="color:var(--accent);">${t("viewOnMaps")}</a>
-       </div>`;
+    : `<div style="font-size:12.5px;color:var(--ink-soft);"><a href="${mapsUrl}" target="_blank" rel="noopener" style="color:var(--accent);">${t("viewOnMaps")}</a></div>`;
 
   const reviewHTML = r._fromPlaces
     ? `<div class="review-quote">${r.review}</div>`
@@ -1025,11 +1002,7 @@ function renderDetail(r) {
       <div class="emoji-sticker">${r.emoji}</div>
     </div>
     <div class="card-name">${r.name}</div>
-    <div class="badge-row">
-      ${dietBadges(r)}
-      ${r.liveMusic ? '<div class="badge">🎵 Live music</div>' : ""}
-      <div class="badge">${priceLabel(r.priceTier)}</div>
-    </div>
+    <div class="badge-row">${dietBadges(r)}${r.liveMusic ? '<div class="badge">🎵 Live music</div>' : ""}<div class="badge">${priceLabel(r.priceTier)}</div></div>
     <div class="card-meta">${r.cuisine} · 📍 ${areaLabel(r)} · ${distanceTo(r).toFixed(1)} km · ${r.hours}</div>
     <div class="detail-block">
       <div class="detail-block-title">${t("sectionAddress")}</div>
@@ -1056,15 +1029,36 @@ function renderDetail(r) {
     </div>
   `;
 
-  buildPhotoGallery(r, $("#detail-gallery-container")); // async, non-blocking
+  buildPhotoGallery(r, $("#detail-gallery-container"));
 
-  $(".report-row", $("#detail-content")).addEventListener("click", (e) => {
+  // Load real counts from Firestore
+  if (db) {
+    db.collection("communityReports").doc(r.id).get().then(snap => {
+      if (!snap.exists) return;
+      const data = snap.data();
+      $all(".report-chip", $("#detail-content")).forEach(btn => {
+        const key = btn.dataset.key;
+        if (data[key] !== undefined) {
+          r.communityReports[key] = data[key];
+          btn.querySelector(".count").textContent = `(${data[key]})`;
+        }
+      });
+    }).catch(() => {});
+  }
+
+  $(".report-row", $("#detail-content")).addEventListener("click", e => {
     const btn = e.target.closest(".report-chip");
     if (!btn || btn.classList.contains("reported")) return;
     const key = btn.dataset.key;
     r.communityReports[key] += 1;
     btn.classList.add("reported");
     btn.querySelector(".count").textContent = `(${r.communityReports[key]})`;
+    if (db && currentUser?.uid) {
+      db.collection("communityReports").doc(r.id).set({
+        [key]: firebase.firestore.FieldValue.increment(1),
+        [`reporters.${currentUser.uid}.${key}`]: true,
+      }, { merge: true }).catch(() => {});
+    }
   });
 }
 
@@ -1074,20 +1068,17 @@ $("#detail-commit-btn").addEventListener("click", commitCurrent);
 
 // ─── Commit screen ────────────────────────────────────────────────────────────
 function renderCommit(r) {
-  buildPhotoGallery(r, $("#commit-photo")); // async, non-blocking
+  buildPhotoGallery(r, $("#commit-photo"));
   $("#commit-name").textContent = r.name;
   const dKm = distanceTo(r);
   const driveMins = Math.max(2, Math.round(dKm * 3));
   $("#commit-meta").innerHTML = `${dKm.toFixed(1)} km · ${t("driveMin", driveMins)}<br>📍 ${r.address}`;
-
-  const destination = r.placeId
-    ? `place_id:${r.placeId}`
-    : encodeURIComponent(`${r.name}, ${r.address}`);
-  let mapsUrl = r.placeId
+  const dest = r.placeId ? `place_id:${r.placeId}` : encodeURIComponent(`${r.name}, ${r.address}`);
+  let gMapsUrl = r.placeId
     ? `https://www.google.com/maps/place/?q=place_id:${r.placeId}`
-    : `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
-  if (userCoords && !r.placeId) mapsUrl += `&origin=${userCoords.lat},${userCoords.lng}`;
-  $("#navigate-link-maps").href = mapsUrl;
+    : `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+  if (userCoords && !r.placeId) gMapsUrl += `&origin=${userCoords.lat},${userCoords.lng}`;
+  $("#navigate-link-maps").href = gMapsUrl;
   $("#navigate-link-waze").href = `https://www.waze.com/ul?ll=${r.lat},${r.lng}&navigate=yes`;
 }
 
@@ -1095,13 +1086,12 @@ $("#back-to-feed-from-commit").addEventListener("click", () => { currentIndex++;
 
 // ─── Empty deck screen ────────────────────────────────────────────────────────
 function renderEmptyScreen() {
-  const distanceIdx = DISTANCE_TIERS.indexOf(prefs.distance);
-  const canWiden = distanceIdx > -1 && distanceIdx < DISTANCE_TIERS.length - 1;
+  const distIdx = DISTANCE_TIERS.indexOf(prefs.distance);
+  const canWiden = distIdx > -1 && distIdx < DISTANCE_TIERS.length - 1;
   const widenBtn = $("#widen-distance-btn");
   const copyEl   = $("#empty-copy");
-
   if (canWiden) {
-    const nextTier  = DISTANCE_TIERS[distanceIdx + 1];
+    const nextTier  = DISTANCE_TIERS[distIdx + 1];
     const nextLabel = nextTier === "any" ? t("anyDist").toLowerCase() : `≤${nextTier} km`;
     copyEl.textContent    = t("emptyWiden", prefs.distance);
     widenBtn.textContent  = t("widenBtn", nextLabel);
@@ -1118,6 +1108,18 @@ $("#restart-btn").addEventListener("click", () => showScreen("screen-prompt"));
 $("#empty-history-btn").addEventListener("click", () => { renderHistory(); showScreen("screen-history"); });
 
 // ─── History screen ───────────────────────────────────────────────────────────
+async function loadHistory() {
+  if (!db || !currentUser?.uid) return;
+  try {
+    const snap = await db.collection("users").doc(currentUser.uid)
+      .collection("history").orderBy("committedAt", "desc").limit(50).get();
+    history = snap.docs.map(d => ({
+      restaurant: d.data(),
+      whenLabel: d.data().committedAt?.toDate().toLocaleDateString("en-MY", { day:"numeric", month:"short" }) || "",
+    }));
+  } catch {} // silently fall back to in-memory history
+}
+
 function renderHistory() {
   const el = $("#history-list");
   if (history.length === 0) {
@@ -1133,6 +1135,107 @@ function renderHistory() {
 }
 
 $("#back-from-history").addEventListener("click", () => showScreen("screen-prompt"));
+
+// ─── Suggest screen ───────────────────────────────────────────────────────────
+function renderSuggest() {
+  const fb = $("#suggest-feedback");
+  if (fb) { fb.style.display = "none"; fb.innerHTML = ""; }
+  const btn = $("#suggest-submit-btn");
+  if (btn) { btn.disabled = false; btn.textContent = t("suggestSubmit"); }
+}
+
+function findPlaceByName(name, address) {
+  return new Promise(resolve => {
+    if (!_placesService) { resolve(null); return; }
+    const query = address ? `${name} ${address} Malaysia` : `${name} Malaysia`;
+    _placesService.findPlaceFromText(
+      { query, fields: ["place_id", "name", "formatted_address"] },
+      (results, status) => resolve(status === google.maps.places.PlacesServiceStatus.OK ? results[0] : null)
+    );
+  });
+}
+
+function showSuggestFeedback(type, html) {
+  const fb = $("#suggest-feedback");
+  fb.innerHTML = html;
+  fb.className = `suggest-feedback suggest-feedback--${type}`;
+  fb.style.display = "block";
+}
+
+async function submitSuggestion() {
+  const name    = $("#suggest-name").value.trim();
+  const address = $("#suggest-address").value.trim();
+  const notes   = $("#suggest-notes").value.trim();
+  const btn     = $("#suggest-submit-btn");
+
+  if (!name) { showSuggestFeedback("error", "Please enter a restaurant name."); return; }
+
+  btn.disabled = true;
+  btn.textContent = "Checking…";
+
+  // Layer 1: local RESTAURANTS
+  const localMatch = RESTAURANTS.find(r =>
+    r.name.toLowerCase().includes(name.toLowerCase()) ||
+    name.toLowerCase().includes(r.name.toLowerCase())
+  );
+  if (localMatch) {
+    showSuggestFeedback("exists", `✅ We already have <strong>${localMatch.name}</strong> at ${localMatch.address} — it's in the feed!`);
+    btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+  }
+
+  // Layer 2: existing Firestore suggestions
+  if (db) {
+    try {
+      const snap = await db.collection("suggestions").where("nameLower", ">=", name.toLowerCase().slice(0, 8)).limit(10).get();
+      const dup = snap.docs.find(d =>
+        d.data().name.toLowerCase().includes(name.toLowerCase()) ||
+        name.toLowerCase().includes(d.data().name.toLowerCase())
+      );
+      if (dup) {
+        showSuggestFeedback("exists", `✅ <strong>${dup.data().name}</strong> has already been suggested — we'll review it soon!`);
+        btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+      }
+    } catch {}
+  }
+
+  // Layer 3: Google Places
+  let placesMatch = null;
+  if (PLACES_API_KEY && _placesService) {
+    placesMatch = await findPlaceByName(name, address);
+    if (placesMatch) {
+      const alreadyInFeed = nearbyRestaurants.find(r => r.placeId === placesMatch.place_id);
+      if (alreadyInFeed) {
+        showSuggestFeedback("exists", `✅ <strong>${placesMatch.name}</strong> is already appearing in your feed!`);
+        btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+      }
+    }
+  }
+
+  // Save to Firestore (or show success without saving if no DB)
+  if (db && currentUser?.uid) {
+    try {
+      await db.collection("suggestions").add({
+        name, nameLower: name.toLowerCase(), address, notes,
+        submittedBy: currentUser.uid,
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        status: "pending",
+        placesMatch: placesMatch ? { placeId: placesMatch.place_id, name: placesMatch.name } : null,
+      });
+    } catch {
+      showSuggestFeedback("error", "Couldn't save — please try again.");
+      btn.disabled = false; btn.textContent = t("suggestSubmit"); return;
+    }
+  }
+
+  showSuggestFeedback("success", `🙏 Thanks! We'll review <strong>${name}</strong> and add it soon.`);
+  $("#suggest-name").value = "";
+  $("#suggest-address").value = "";
+  $("#suggest-notes").value = "";
+  btn.disabled = false;
+  btn.textContent = t("suggestSubmit");
+}
+
+$("#suggest-submit-btn").addEventListener("click", submitSuggestion);
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 initAuth();
