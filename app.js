@@ -623,12 +623,14 @@ $("#signup-btn").addEventListener("click", async () => {
   }
 });
 
-// Google sign-in
-$("#google-signin-btn").addEventListener("click", async () => {
-  if (!_firebaseReady) { $("#signin-error").textContent = "Firebase not configured yet."; return; }
+// Google sign-in / sign-up (same Firebase call handles both)
+async function _googleAuth(errorElId) {
+  if (!_firebaseReady) { $("#" + errorElId).textContent = "Firebase not configured yet."; return; }
   try { await auth.signInWithPopup(googleProvider); }
-  catch (e) { $("#signin-error").textContent = e.message; }
-});
+  catch (e) { $("#" + errorElId).textContent = e.message; }
+}
+$("#google-signin-btn").addEventListener("click", () => _googleAuth("signin-error"));
+$("#google-signup-btn").addEventListener("click", () => _googleAuth("signup-error"));
 
 // Auth tabs
 $all(".auth-tab").forEach(tab => {
