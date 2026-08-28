@@ -1,14 +1,15 @@
 :root{
-  --ink:#22201d;
-  --ink-soft:#6b6560;
-  --line:#ebe6df;
-  --paper:#fbfaf7;
+  --ink:#2C1810;
+  --ink-soft:#8B6A52;
+  --line:#F0D9A8;
+  --paper:#FDF6EC;
+  --surface:#F5ECD9;
   --card:#ffffff;
-  --accent:#ff6b35;
-  --accent2:#f72585;
-  --accent-grad:linear-gradient(135deg,#ff6b35,#f72585);
-  --accent-soft:#fff4ee;
-  --chip:#f5ede6;
+  --accent:#E8960C;
+  --accent2:#C17310;
+  --accent-grad:linear-gradient(135deg,#E8960C,#C17310);
+  --accent-soft:#FDF3DC;
+  --chip:#F5ECD9;
   --good:#2d6a4f;
   --bad:#c1121f;
 }
@@ -16,7 +17,7 @@
 html,body{
   margin:0;
   height:100%;
-  background:#e9e2d6;
+  background:#D4B896;
   font-family:'Manrope',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   color:var(--ink);
   /* Keep pull-to-refresh/rubber-band scrolling from fighting the swipe-card drag gesture */
@@ -52,6 +53,8 @@ button{
   align-items:center;
   justify-content:space-between;
   margin-bottom:8px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--line);
 }
 .brand-lockup{
   display:flex;
@@ -59,11 +62,10 @@ button{
   gap:10px;
 }
 .logo-icon{
-  width:34px;height:34px;
-  border-radius:9px;
+  width:30px;height:30px;
+  border-radius:7px;
   flex-shrink:0;
-  background:linear-gradient(135deg,#ff6b35,#f72585);
-  box-shadow:0 3px 10px rgba(247,37,133,.22);
+  background:#2d6a4f;
   display:flex;align-items:center;justify-content:center;
 }
 .logo-icon svg{ width:63%;height:63%; }
@@ -73,21 +75,19 @@ button{
   font-family:'Fredoka',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:19px;
   font-weight:700;
-  background:var(--accent-grad);
-  -webkit-background-clip:text;
-  background-clip:text;
-  color:transparent;
+  color:var(--accent);
 }
 .brand.small{ font-size:16px; }
-.brand span{ color:transparent; }
+.brand span{ color:var(--accent); }
 .icon-btn{
-  width:40px;height:40px;
-  border-radius:50%;
-  border:1.5px solid var(--line);
-  background:#fff;
-  font-size:16px;
+  width:36px;height:36px;
+  border-radius:8px;
+  border:none;
+  background:transparent;
+  font-size:18px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
+  color:var(--ink);
 }
 .spacer-icon{ visibility:hidden; }
 .topbar-actions{
@@ -96,22 +96,21 @@ button{
   gap:8px;
 }
 .lang-btn{
-  height:34px;
-  padding:0 12px;
-  border-radius:999px;
-  border:1.5px solid var(--accent);
+  height:28px;
+  padding:0 9px;
+  border-radius:6px;
+  border:1px solid rgba(44,24,16,0.18);
   background:transparent;
-  color:var(--accent);
+  color:var(--ink);
   font-family:'Manrope',sans-serif;
-  font-size:12px;
+  font-size:11px;
   font-weight:700;
   letter-spacing:.04em;
   cursor:pointer;
-  transition:background .15s, color .15s;
+  transition:background .12s;
 }
 .lang-btn:active{
-  background:var(--accent);
-  color:#fff;
+  background:rgba(44,24,16,0.06);
 }
 
 .prompt-title{
@@ -240,7 +239,7 @@ button{
 .mode-btn.active{
   background:var(--accent-soft);
   border-color:var(--accent);
-  color:#7a3200;
+  color:#6B3F00;
 }
 
 .spacer{ flex:1; }
@@ -301,12 +300,15 @@ button{
   display:flex;
   flex-direction:column;
   gap:10px;
-  box-shadow:0 10px 24px rgba(43,38,34,0.12);
+  box-shadow:0 8px 28px rgba(44,24,16,0.13);
   touch-action:none;
   user-select:none;
   cursor:grab;
+  transition:box-shadow .12s ease;
 }
 .card:active{ cursor:grabbing; }
+.card.swiping-right{ box-shadow:0 0 0 3px #27AE60, 0 8px 28px rgba(44,24,16,0.13); }
+.card.swiping-left { box-shadow:0 0 0 3px #bbb,     0 8px 28px rgba(44,24,16,0.13); }
 .card-photo{
   flex:1;
   border-radius:14px;
@@ -371,20 +373,9 @@ button{
   border-radius:999px;
   backdrop-filter:blur(2px);
 }
-.stamp{
-  position:absolute;
-  top:16px;
-  padding:6px 14px;
-  border:3px solid;
-  border-radius:8px;
-  font-weight:800;
-  font-size:15px;
-  letter-spacing:.05em;
-  opacity:0;
-  transform:rotate(-12deg);
-}
-.stamp.like{ left:16px; color:var(--good); border-color:var(--good); }
-.stamp.nope{ right:16px; color:var(--bad); border-color:var(--bad); }
+/* Swipe feedback is now a card border glow (see .card.swiping-right/.left above)
+   Keep .stamp elements in DOM for JS compatibility but keep them hidden */
+.stamp{ display:none; }
 
 .card-name{ font-family:'Fredoka',-apple-system,BlinkMacSystemFont,sans-serif; font-size:17px; font-weight:600; }
 .badge-row{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -393,7 +384,7 @@ button{
   padding:3px 8px;
   border-radius:7px;
   background:var(--accent-soft);
-  color:#7a3200;
+  color:#6B3F00;
   font-weight:700;
 }
 .card-meta{ font-size:12px; color:var(--ink-soft); }
@@ -469,7 +460,7 @@ button{
 .report-chip.reported{
   background:var(--accent-soft);
   border-color:var(--accent);
-  color:#7a3200;
+  color:#6B3F00;
   cursor:default;
 }
 
@@ -551,7 +542,7 @@ button{
   display:inline-block;
   font-size:10.5px;
   font-weight:700;
-  color:#7a3200;
+  color:#6B3F00;
   background:var(--accent-soft);
   padding:3px 10px;
   border-radius:999px;
@@ -570,7 +561,7 @@ button{
   width:72px;height:72px;
   border-radius:18px;
   margin:0 auto 14px;
-  box-shadow:0 8px 24px rgba(247,37,133,.28);
+  box-shadow:0 8px 24px rgba(232,150,12,.32);
 }
 .auth-brand{
   font-family:'Fredoka',-apple-system,BlinkMacSystemFont,sans-serif;
@@ -621,6 +612,74 @@ button{
 }
 .auth-input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
 .auth-error{ font-size:12.5px; color:var(--bad); min-height:16px; }
+.auth-divider{
+  display:flex; align-items:center; gap:10px;
+  color:var(--ink-soft); font-size:12px; margin:4px 0;
+}
+.auth-divider::before,.auth-divider::after{
+  content:""; flex:1; height:1px; background:var(--line);
+}
+.btn-google{
+  background:#fff;
+  border:1.5px solid var(--line);
+  color:var(--ink);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  justify-content:center;
+  font-size:14px;
+}
+.btn-google:active{ background:var(--surface); }
+
+/* ---- Bottom navigation ---- */
+.bottom-nav{
+  position:fixed;
+  bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:430px;
+  height:56px;
+  background:#2d6a4f;
+  border-top:none;
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom);
+  z-index:200;
+}
+.nav-tab{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  background:none;
+  border:none;
+  color:rgba(255,255,255,0.45);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0;
+  cursor:pointer;
+  font-family:inherit;
+  transition:color .12s;
+}
+.nav-tab.active{ color:#fff; }
+.nav-icon{ line-height:1; display:flex; align-items:center; justify-content:center; }
+
+/* Extra bottom padding on nav screens so content doesn't hide behind the nav bar */
+#screen-prompt{ padding-bottom:calc(68px + env(safe-area-inset-bottom)); }
+#screen-history{ padding-bottom:calc(68px + env(safe-area-inset-bottom)); }
+#screen-suggest{ padding-bottom:calc(68px + env(safe-area-inset-bottom)); }
+
+/* ---- Suggest screen ---- */
+.suggest-content{ display:flex; flex-direction:column; flex:1; }
+.suggest-feedback{
+  padding:12px 14px;
+  border-radius:12px;
+  font-size:13px;
+  line-height:1.5;
+  margin-top:4px;
+}
+.suggest-feedback--success{ background:#EAFAF1; color:#1E8449; border:1px solid #A9DFBF; }
+.suggest-feedback--exists { background:#FDF3DC; color:#6B3F00; border:1px solid var(--line); }
+.suggest-feedback--error  { background:#FDEDEC; color:#922B21; border:1px solid #F1948A; }
 
 /* ---- Photo gallery ---- */
 .gallery-wrap{ width:100%; height:220px; position:relative; overflow:hidden; border-radius:16px; }
