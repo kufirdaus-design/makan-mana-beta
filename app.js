@@ -1439,6 +1439,13 @@ async function submitSuggestion() {
         status: "pending",
         placesMatch: placesMatch ? { placeId: placesMatch.place_id, name: placesMatch.name } : null,
       });
+      db.collection("mail").add({
+        to: "kufirdaus@gmail.com",
+        message: {
+          subject: `🍽 New suggestion: ${name}`,
+          text: `New place suggested on Makan Mana!\n\nName: ${name}\nAddress: ${address || "—"}\nKiller dish: ${killerDish || "—"}\nPrice: ${["","Under RM10","RM10–30","RM30+"][priceTier] || "—"}\nRating: ${suggestRating ? suggestRating + "/5" : "—"}\nVotes so far: 1\n\nReview it in your admin panel.`,
+        },
+      }).catch(() => {});
     } catch {
       showSuggestFeedback("error", "Couldn't save — please try again.");
       btn.disabled = false; btn.textContent = "Submit suggestion"; return;
