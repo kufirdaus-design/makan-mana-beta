@@ -49,6 +49,11 @@
         <input id="signin-password" class="auth-input" type="password" autocomplete="current-password" data-i18n-placeholder="pwPlaceholder" placeholder="Password" />
         <div id="signin-error" class="auth-error"></div>
         <button id="signin-btn" class="btn btn-primary" data-i18n="signIn">Sign in</button>
+        <div class="auth-divider"><span>or</span></div>
+        <button id="google-signin-btn" class="btn btn-google">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="G" />
+          Continue with Google
+        </button>
       </div>
 
       <div id="tab-signup" class="auth-form">
@@ -79,7 +84,7 @@
       </div>
       <div class="topbar-actions">
         <button id="lang-btn" class="lang-btn" aria-label="Toggle language">BM</button>
-        <button id="profile-btn" class="icon-btn" aria-label="About Makan Mana" title="About Makan Mana">ℹ️</button>
+        <button id="profile-btn" class="icon-btn" aria-label="About Makan Mana" title="About Makan Mana"><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><circle cx="12" cy="8" r=".5" fill="currentColor" stroke="none"/></svg></button>
       </div>
     </header>
 
@@ -156,7 +161,7 @@
   <!-- SCREEN: SWIPE FEED -->
   <section id="screen-feed" class="screen">
     <header class="topbar">
-      <button id="back-to-prompt" class="icon-btn" aria-label="Back">←</button>
+      <button id="back-to-prompt" class="icon-btn" aria-label="Back"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <div class="brand-lockup">
         <div class="logo-icon logo-icon-sm">
           <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -190,7 +195,7 @@
   <!-- SCREEN: RESTAURANT DETAIL -->
   <section id="screen-detail" class="screen">
     <header class="topbar">
-      <button id="back-to-feed" class="icon-btn" aria-label="Back">←</button>
+      <button id="back-to-feed" class="icon-btn" aria-label="Back"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <div class="brand small" data-i18n="detailsTitle">Details</div>
       <div class="icon-btn spacer-icon"></div>
     </header>
@@ -234,15 +239,61 @@
   <!-- SCREEN: HISTORY -->
   <section id="screen-history" class="screen">
     <header class="topbar">
-      <button id="back-from-history" class="icon-btn" aria-label="Back">←</button>
+      <button id="back-from-history" class="icon-btn" aria-label="Back"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <div class="brand small" data-i18n="historyTitle">Places you've been</div>
       <div class="icon-btn spacer-icon"></div>
     </header>
     <div id="history-list" class="history-list"></div>
   </section>
 
+  <!-- SCREEN: SUGGEST A PLACE -->
+  <section id="screen-suggest" class="screen">
+    <header class="topbar">
+      <div class="brand small" data-i18n="suggestTitle">Suggest a place</div>
+      <div class="icon-btn spacer-icon"></div>
+    </header>
+    <div class="suggest-content">
+      <p class="field-hint" style="margin-bottom:18px;" data-i18n="suggestHint">Know a great spot we're missing? Tell us about it.</p>
+      <div class="field">
+        <div class="field-label" data-i18n="suggestName">Restaurant name *</div>
+        <input id="suggest-name" class="auth-input" type="text" placeholder="e.g. Restoran Sri Nirwana Maju" />
+      </div>
+      <div class="field">
+        <div class="field-label" data-i18n="suggestArea">Area / Address</div>
+        <input id="suggest-address" class="auth-input" type="text" placeholder="e.g. Bangsar, KL" />
+      </div>
+      <div class="field">
+        <div class="field-label" data-i18n="suggestNotes">Notes</div>
+        <input id="suggest-notes" class="auth-input" type="text" placeholder="e.g. Best banana leaf in PJ, open 24hrs" />
+      </div>
+      <div id="suggest-feedback" class="suggest-feedback" style="display:none;"></div>
+      <div class="spacer"></div>
+      <button id="suggest-submit-btn" class="btn btn-primary" data-i18n="suggestSubmit">Submit suggestion</button>
+    </div>
+  </section>
+
+  <!-- Bottom navigation (shown after login) -->
+  <nav id="bottom-nav" class="bottom-nav" style="display:none;">
+    <button class="nav-tab active" data-screen="screen-prompt" id="nav-home">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+      <span class="nav-label" data-i18n="navHome">Home</span>
+    </button>
+    <button class="nav-tab" data-screen="screen-history" id="nav-history">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+      <span class="nav-label" data-i18n="navHistory">History</span>
+    </button>
+    <button class="nav-tab" data-screen="screen-suggest" id="nav-suggest">
+      <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
+      <span class="nav-label" data-i18n="navSuggest">Suggest</span>
+    </button>
+  </nav>
+
 </div>
 
+<!-- Firebase compat SDKs (no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>
