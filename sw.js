@@ -1,4 +1,4 @@
-const CACHE = "makan-mana-v1";
+const CACHE = "makan-mana-v2";
 const CORE  = ["/", "/index.html", "/styles.css", "/app.js", "/data.js"];
 
 self.addEventListener("install", e => {
