@@ -1391,14 +1391,18 @@ async function submitSuggestion() {
     const files = Array.from(photosInput.files).slice(0, 3);
     try {
       const tempId = Date.now().toString();
-      photoUrls = await Promise.all(files.map(async (f, i) => {
-        const ref = storage.ref(`suggestions/${tempId}/${i}_${f.name}`);
-        await ref.put(f);
-        return ref.getDownloadURL();
-      }));
+      const uploadTimeout = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 15000));
+      photoUrls = await Promise.race([
+        Promise.all(files.map(async (f, i) => {
+          const ref = storage.ref(`suggestions/${tempId}/${i}_${f.name}`);
+          await ref.put(f);
+          return ref.getDownloadURL();
+        })),
+        uploadTimeout
+      ]);
     } catch {
-      showSuggestFeedback("error", "Photo upload failed — try without photos or check your connection.");
-      btn.disabled = false; btn.textContent = "Submit suggestion"; return;
+      // Skip photos if upload fails — submit without them
+      photoUrls = [];
     }
   }
 
