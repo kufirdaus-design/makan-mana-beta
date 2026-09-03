@@ -1327,16 +1327,15 @@ async function submitSuggestion() {
   if (!killerDish) { showSuggestFeedback("error", "Tell us the killer dish!"); return; }
 
   btn.disabled = true;
-  btn.textContent = "Checking…";
+  btn.textContent = "Submitting…";
 
-  // Layer 1: local RESTAURANTS
+  // Layer 1: local RESTAURANTS (sync — instant)
   const localMatch = RESTAURANTS.find(r =>
     r.name.toLowerCase().includes(name.toLowerCase()) ||
     name.toLowerCase().includes(r.name.toLowerCase())
   );
   if (localMatch) {
     showSuggestFeedback("exists", `✅ We already have <strong>${localMatch.name}</strong> at ${localMatch.address} — it's in the feed!`);
-    // Inject inline correction form below the feedback
     const fb = $("#suggest-feedback");
     const panel = document.createElement("div");
     panel.className = "correction-panel";
@@ -1367,41 +1366,13 @@ async function submitSuggestion() {
     btn.disabled = false; return;
   }
 
-  // Layer 2: existing Firestore suggestions — exact nameKey match + vote merging
+  // Firestore duplicate check — fire async, don't block submission
   const nameKey = toNameKey(name);
-  if (db && nameKey) {
-    try {
-      const timeout = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 6000));
-      const snap = await Promise.race([
-        db.collection("suggestions").where("nameKey", "==", nameKey).limit(5).get(),
-        timeout
-      ]);
-      if (!snap.empty) {
-        const dupDoc = snap.docs[0];
-        const data = dupDoc.data();
-        const alreadyVoted = (data.voters || []).includes(currentUser?.uid);
-        if (alreadyVoted) {
-          showSuggestFeedback("exists", `✅ You already suggested <strong>${data.name}</strong> — we'll review it soon!`);
-          btn.disabled = false; return;
-        }
-        // Different user — increment vote
-        await dupDoc.ref.update({
-          votes: firebase.firestore.FieldValue.increment(1),
-          voters: firebase.firestore.FieldValue.arrayUnion(currentUser?.uid),
-        });
-        const total = (data.votes || 1) + 1;
-        showSuggestFeedback("success", `👍 ${total} people have suggested <strong>${data.name}</strong> — we'll prioritise it!`);
-        btn.disabled = false; btn.textContent = "Submit suggestion"; return;
-      }
-    } catch {}
-  }
-
-  // Layer 3: Google Places
   let placesMatch = null;
   if (PLACES_API_KEY && _placesService) {
     placesMatch = await Promise.race([
       findPlaceByName(name, address),
-      new Promise(r => setTimeout(() => r(null), 5000))
+      new Promise(r => setTimeout(() => r(null), 3000))
     ]);
     if (placesMatch) {
       const alreadyInFeed = nearbyRestaurants.find(r => r.placeId === placesMatch.place_id);
