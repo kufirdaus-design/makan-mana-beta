@@ -1399,7 +1399,10 @@ async function submitSuggestion() {
   // Layer 3: Google Places
   let placesMatch = null;
   if (PLACES_API_KEY && _placesService) {
-    placesMatch = await findPlaceByName(name, address);
+    placesMatch = await Promise.race([
+      findPlaceByName(name, address),
+      new Promise(r => setTimeout(() => r(null), 5000))
+    ]);
     if (placesMatch) {
       const alreadyInFeed = nearbyRestaurants.find(r => r.placeId === placesMatch.place_id);
       if (alreadyInFeed) {
