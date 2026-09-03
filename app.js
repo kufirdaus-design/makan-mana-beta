@@ -1371,7 +1371,11 @@ async function submitSuggestion() {
   const nameKey = toNameKey(name);
   if (db && nameKey) {
     try {
-      const snap = await db.collection("suggestions").where("nameKey", "==", nameKey).limit(5).get();
+      const timeout = new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 6000));
+      const snap = await Promise.race([
+        db.collection("suggestions").where("nameKey", "==", nameKey).limit(5).get(),
+        timeout
+      ]);
       if (!snap.empty) {
         const dupDoc = snap.docs[0];
         const data = dupDoc.data();
@@ -1452,7 +1456,7 @@ async function submitSuggestion() {
     }
   }
 
-  showSuggestFeedback("success", `🙏 Thanks! We'll review <strong>${name}</strong> and add it soon.`);
+  showSuggestFeedback("success", `🎉 Yes! <strong>${name}</strong> has been submitted. You're helping everyone eat better in KL — we'll review it and add it to the feed soon. Terima kasih! 🙏`);
   $("#suggest-name").value = "";
   $("#suggest-address").value = "";
   $("#suggest-killer").value = "";
